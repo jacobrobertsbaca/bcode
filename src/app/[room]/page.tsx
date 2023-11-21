@@ -84,6 +84,10 @@ function CodeView() {
         colorLight: "#8bdafc",
       });
     });
+
+    provider.on(SupabaseProviderEvents.Error, (err) => {
+      console.log(err);
+    });
     
     new EditorView({
       extensions: [
@@ -108,7 +112,7 @@ function CodeView() {
       />
 
       {/* TODO: Unhide this element when connection is lost or when loading.  */}
-      <Box sx={{
+      {/* <Box sx={{
         position: "absolute",
         top: 0,
         left: 0,
@@ -120,7 +124,7 @@ function CodeView() {
         justifyContent: "center"
       }}>
         <CircularProgress size={24} />
-      </Box>
+      </Box> */}
     </Card>
   );
 }
