@@ -15,11 +15,11 @@ import { EditorView, basicSetup } from "codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { ayuLight } from "thememirror";
 import * as Y from "yjs";
-import { SupabaseProvider } from "@/provider";
-import { createClient } from "@supabase/supabase-js";
+import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 
 import { yCollab } from "y-codemirror.next";
 import { jakarta } from "@/components/ThemeRegistry/theme";
+import supabase from "@/provider/supabase";
 
 function NameView() {
   const name = useRoomState((room) => room.name);
@@ -64,12 +64,7 @@ function CodeView() {
 
   useEffect(() => {
     const parent = document.getElementById(EditorViewId)!;
-    if (parent.hasChildNodes()) return;
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    parent.replaceChildren();
 
     const doc = new Y.Doc();
     const provider = new SupabaseProvider(doc, supabase, {
@@ -77,15 +72,18 @@ function CodeView() {
       diffTable: "diffs",
       diffView: "diffsview",
     });
+
     const ytext = doc.getText("codemirror");
     const undoManager = new Y.UndoManager(ytext);
 
-    provider.awareness.setLocalStateField("user", {
-      name,
-      color: "#03b1fc",
-      colorLight: "#8bdafc",
+    provider.on(SupabaseProviderEvents.Connect, () => {
+      provider.awareness.setLocalStateField("user", {
+        name,
+        color: "#03b1fc",
+        colorLight: "#8bdafc",
+      });
     });
-
+    
     new EditorView({
       extensions: [
         basicSetup,
@@ -95,6 +93,8 @@ function CodeView() {
       ],
       parent,
     });
+
+    return () => provider.destroy();
   }, []);
 
   return (

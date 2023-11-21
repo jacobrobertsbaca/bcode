@@ -71,8 +71,8 @@ enum DiffColumns {
   Diffs = "diffs",
 }
 
-const ResyncDefault = 5000;
-const SaveDefault = 5000;
+const DefaultResyncMs = 5000;
+const DefaultSaveMs = 5000;
 
 /**
  * Debounces a function.
@@ -100,49 +100,40 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
 export class SupabaseProvider extends EventEmitter {
   public readonly awareness: AwarenessProtocol.Awareness;
 
-  constructor(
-    private doc: Y.Doc,
-    private supabase: SupabaseClient,
-    private config: SupabaseProviderConfig
-  ) {
+  constructor(private doc: Y.Doc, private supabase: SupabaseClient, private config: SupabaseProviderConfig) {
     super();
     this.logger = debug("y-" + doc.clientID);
     this.logger.enabled = true;
-    this.logger(
-      `Creating ${SupabaseProvider.name} for document ${this.doc.guid}`
-    );
-
+    this.logger(`Creating ${SupabaseProvider.name} for document ${this.doc.guid}`);
     this.awareness = new AwarenessProtocol.Awareness(doc);
 
     /* Set up resyncInterval */
-    if (
-      this.config.resyncInterval ||
-      typeof this.config.resyncInterval === "undefined"
-    ) {
+    if (this.config.resyncInterval || typeof this.config.resyncInterval === "undefined") {
       this.resync = setInterval(() => {
         const update = Y.encodeStateAsUpdateV2(this.doc);
         this.emit(SupabaseProviderEvents.Message, update);
-        if (this.channel) {
+        if (this.connected && this.channel) {
           this.channel.send({
             type: "broadcast",
             event: ChannelEvents.Message,
             payload: Array.from(update),
           });
         }
-      }, this.config.resyncInterval || ResyncDefault);
-    }
-
-    /* Register unload handlers */
-    if (typeof window !== "undefined") {
-      window.addEventListener("beforeunload", this.onUnload);
-    } else if (typeof process !== "undefined") {
-      process.on("exit", this.onUnload);
+      }, this.config.resyncInterval || DefaultResyncMs);
     }
 
     /* Setup debounced save function */
     this.saveDocumentDebounced = debounce(() => {
       this.saveDocument();
-    }, this.config.saveInterval || SaveDefault);
+    }, this.config.saveInterval || DefaultSaveMs);
+
+    /* Register unload handlers */
+    this.onUnloadBound = this.onUnload.bind(this);
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", this.onUnloadBound);
+    } else if (typeof process !== "undefined") {
+      process.on("exit", this.onUnloadBound);
+    }
 
     this.on(SupabaseProviderEvents.Connect, this.onConnect);
     this.on(SupabaseProviderEvents.Disconnect, this.onDisconnect);
@@ -160,16 +151,15 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   public destroy() {
-    this.logger(
-      `Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`
-    );
+    this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
     clearInterval(this.resync);
 
-    /* Unregister unload handlers */
+    /* Remove awareness and unregister unload handlers */
+    this.onUnload();
     if (typeof window !== "undefined") {
-      window.removeEventListener("beforeunload", this.onUnload);
+      window.removeEventListener("beforeunload", this.onUnloadBound);
     } else if (typeof process !== "undefined") {
-      process.off("exit", () => this.onUnload);
+      process.off("exit", this.onUnloadBound);
     }
 
     /* Unbind from document/awareness callbacks */
@@ -180,12 +170,13 @@ export class SupabaseProvider extends EventEmitter {
 
   /* Private methods */
   private logger: Debugger;
+  private connected: boolean = false;
   private channel: RealtimeChannel | null = null;
-  private online: boolean = false;
   private resync: NodeJS.Timeout | undefined;
   private previous: Uint8Array | null = null;
   private saveDocumentDebounced: () => void;
 
+  private onUnloadBound: typeof this.onUnload;
   private onDocumentUpdateBound: typeof this.onDocumentUpdate;
   private onAwarenessUpdateBound: typeof this.onAwarenessUpdate;
 
@@ -193,20 +184,14 @@ export class SupabaseProvider extends EventEmitter {
     this.channel = this.supabase.channel(this.config.channel);
     this.channel
       .on("broadcast", { event: ChannelEvents.Message }, ({ payload }) => {
-        if (!this.online) return;
         try {
-          console.log("received update");
-          Y.applyUpdate(this.doc, Uint8Array.from(payload), origin);
+          Y.applyUpdate(this.doc, Uint8Array.from(payload), this);
         } catch (err: any) {
           this.logger(err);
         }
       })
       .on("broadcast", { event: ChannelEvents.Awareness }, ({ payload }) => {
-        AwarenessProtocol.applyAwarenessUpdate(
-          this.awareness,
-          Uint8Array.from(payload),
-          this
-        );
+        AwarenessProtocol.applyAwarenessUpdate(this.awareness, Uint8Array.from(payload), this);
       })
       .subscribe((status, err) => {
         switch (status) {
@@ -214,7 +199,7 @@ export class SupabaseProvider extends EventEmitter {
             this.emit(SupabaseProviderEvents.Connect);
             break;
           case "CHANNEL_ERROR":
-            this.emit(SupabaseProviderEvents.Error);
+            this.emit(SupabaseProviderEvents.Error, err);
             break;
           case "CLOSED":
           case "TIMED_OUT":
@@ -227,7 +212,6 @@ export class SupabaseProvider extends EventEmitter {
   private disconnect() {
     if (!this.channel) return;
     this.supabase.removeChannel(this.channel);
-    this.channel = null;
   }
 
   private async onConnect() {
@@ -247,10 +231,7 @@ export class SupabaseProvider extends EventEmitter {
       const diffs: number[][] = data[DiffColumns.Diffs];
       try {
         this.logger("Applying data to document.");
-        Y.applyUpdateV2(
-          this.doc,
-          Y.mergeUpdatesV2(diffs.map((d) => Uint8Array.from(d)))
-        );
+        Y.applyUpdateV2(this.doc, Y.mergeUpdatesV2(diffs.map((d) => Uint8Array.from(d))), this);
         this.previous = Y.encodeStateVector(this.doc);
       } catch (error) {
         // TODO: Communicate error
@@ -261,12 +242,14 @@ export class SupabaseProvider extends EventEmitter {
     }
 
     this.logger("Succesfully connected.");
-    this.online = true;
+    this.connected = true;
   }
 
   private onDisconnect() {
-    this.logger('Disconnecting provider.');
-    this.online = false;
+    this.logger("Disconnecting provider.");
+
+    this.channel = null;
+    this.connected = false;
 
     // Update awareness (keep all users except local)
     // TODO: compare to broadcast channel behavior
@@ -286,15 +269,13 @@ export class SupabaseProvider extends EventEmitter {
 
     /* TODO: What does this do? */
     if (JSON.stringify([0, 0]) === JSON.stringify(content)) return;
-    
+
     const record = {
       [DiffColumns.Channel]: this.config.channel,
-      [DiffColumns.Diff]: content
+      [DiffColumns.Diff]: content,
     };
 
-    const { error } = await this.supabase
-      .from(this.config.diffTable)
-      .insert(record);
+    const { error } = await this.supabase.from(this.config.diffTable).insert(record);
 
     if (error) {
       // TODO: Communicate error
@@ -305,9 +286,7 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   private onMessage(message: Uint8Array) {
-    Y.logUpdate(message);
-    console.log("sent message");
-    if (this.channel)
+    if (this.connected && this.channel)
       this.channel.send({
         type: "broadcast",
         event: ChannelEvents.Message,
@@ -316,7 +295,7 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   private onAwareness(message: Uint8Array) {
-    if (this.channel)
+    if (this.connected && this.channel)
       this.channel.send({
         type: "broadcast",
         event: ChannelEvents.Awareness,
@@ -325,26 +304,19 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   private onDocumentUpdate(update: Uint8Array, origin: any) {
-    if (origin !== this) {
-      this.emit(SupabaseProviderEvents.Message, update);
-      this.saveDocumentDebounced();
-    }
+    if (origin === this) return;
+    this.emit(SupabaseProviderEvents.Message, update);
+    this.saveDocumentDebounced();
   }
 
   private onAwarenessUpdate({ added, updated, removed }: any, origin: any) {
+    if (origin === this) return;
     const changedClients = added.concat(updated).concat(removed);
-    const awarenessUpdate = AwarenessProtocol.encodeAwarenessUpdate(
-      this.awareness,
-      changedClients
-    );
+    const awarenessUpdate = AwarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients);
     this.emit(SupabaseProviderEvents.Awareness, awarenessUpdate);
   }
 
   private onUnload() {
-    AwarenessProtocol.removeAwarenessStates(
-      this.awareness,
-      [this.doc.clientID],
-      this
-    );
+    AwarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], this);
   }
 }
