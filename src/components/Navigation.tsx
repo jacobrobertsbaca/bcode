@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import AppBar from "@mui/material/AppBar";
 import Drawer from "@mui/material/Drawer";
 import Toolbar from "@mui/material/Toolbar";
@@ -10,23 +9,19 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import MenuIcon from '@heroicons/react/24/solid/Bars3Icon';
-import HomeIcon from "@mui/icons-material/Home";
-import StarIcon from "@mui/icons-material/Star";
-import ChecklistIcon from "@mui/icons-material/Checklist";
-import SettingsIcon from "@mui/icons-material/Settings";
-import SupportIcon from "@mui/icons-material/Support";
-import LogoutIcon from "@mui/icons-material/Logout";
 import React from "react";
 import { IconButton, SvgIcon } from "@mui/material";
+
+import RoomsIcon from "@heroicons/react/24/solid/CommandLineIcon";
+import SignOutIcon from "@heroicons/react/24/solid/ArrowLeftCircleIcon";
+import MenuIcon from "@heroicons/react/24/solid/Bars3Icon";
 
 const DrawerWidth = 240;
 const AppBarZ = 2000;
 
 const PlaceholderLinks = [
-  { text: "Settings", icon: SettingsIcon },
-  { text: "Support", icon: SupportIcon },
-  { text: "Logout", icon: LogoutIcon },
+  { text: "Rooms", icon: RoomsIcon },
+  { text: "Logout", icon: SignOutIcon },
 ];
 
 export default function Navigation() {
@@ -65,6 +60,7 @@ export default function Navigation() {
         onClose={() => setNavOpen(false)}
         anchor="left"
         variant="temporary"
+        keepMounted
       >
         <Divider sx={{ mt: "auto" }} />
         <List>
@@ -72,7 +68,9 @@ export default function Navigation() {
             <ListItem key={text} disablePadding>
               <ListItemButton>
                 <ListItemIcon>
-                  <Icon />
+                  <SvgIcon>
+                    <Icon />
+                  </SvgIcon>
                 </ListItemIcon>
                 <ListItemText primary={text} />
               </ListItemButton>

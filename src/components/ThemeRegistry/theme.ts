@@ -1,15 +1,14 @@
-import { Plus_Jakarta_Sans } from 'next/font/google';
 import { createTheme } from '@mui/material/styles';
-
-export const jakarta = Plus_Jakarta_Sans({
-  weight: ['300', '400', '500', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-});
+import { jakarta } from './fonts';
 
 const theme = createTheme({
   palette: {
     mode: 'light',
+    primary: { main: "rgba(0, 0, 0, 0.6)" },
+    text: {
+      primary: "rgba(0, 0, 0, 0.6)",
+      secondary: "rgba(0, 0, 0, 0.26)"
+    }
   },
   typography: {
     fontFamily: jakarta.style.fontFamily,
@@ -24,6 +23,32 @@ const theme = createTheme({
         }),
       },
     },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none"
+        }
+      }
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          boxShadow: "0 2px 6px rgba(0,0,0,.05)"
+        }
+      }
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: "10px",
+          ["&.Mui-focused"]: {
+            ["& .MuiOutlinedInput-notchedOutline"]: {
+              borderWidth: 1
+            }
+          }
+        }
+      }
+    }
   },
 });
 

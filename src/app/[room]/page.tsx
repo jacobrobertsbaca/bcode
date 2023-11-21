@@ -39,6 +39,7 @@ function NameView() {
     <form style={{ width: "100%" }} onSubmit={onSubmit}>
       <TextField
         label="Name"
+        placeholder="What is your name?"
         value={name}
         onChange={(e) => setName(e.target.value)}
         fullWidth
