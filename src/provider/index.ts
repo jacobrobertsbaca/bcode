@@ -200,6 +200,9 @@ export class SupabaseProvider extends EventEmitter {
             break;
           case "CHANNEL_ERROR":
             this.emit(SupabaseProviderEvents.Error, err);
+
+            // On a channel error, there is nothing we can do. Must close the connection.
+            this.emit(SupabaseProviderEvents.Disconnect);
             break;
           case "CLOSED":
           case "TIMED_OUT":

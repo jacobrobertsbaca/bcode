@@ -3,6 +3,7 @@
 import {
   Box,
   Card,
+  CircularProgress,
   IconButton,
   InputAdornment,
   SvgIcon,
@@ -98,13 +99,28 @@ function CodeView() {
   }, []);
 
   return (
-    <Card sx={{ width: 1, border: "1px solid #0001", m: 6 }} elevation={0}>
+    <Card sx={{ width: 1, border: "1px solid #0001", m: 6, position: "relative" }} elevation={0}>
       <Box id={EditorViewId} sx={{
         ".cm-content, .cm-gutter": { minHeight: "400px" },
         ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
         ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily }
       }}
       />
+
+      {/* TODO: Unhide this element when connection is lost or when loading.  */}
+      <Box sx={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        backdropFilter: "blur(3px)",
+        alignItems: "center",
+        display: "flex",
+        justifyContent: "center"
+      }}>
+        <CircularProgress size={24} />
+      </Box>
     </Card>
   );
 }
