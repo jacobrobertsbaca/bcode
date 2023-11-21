@@ -19,6 +19,7 @@ import { SupabaseProvider } from "@/provider";
 import { createClient } from "@supabase/supabase-js";
 
 import { yCollab } from "y-codemirror.next";
+import { jakarta } from "@/components/ThemeRegistry/theme";
 
 function NameView() {
   const name = useRoomState((room) => room.name);
@@ -98,7 +99,12 @@ function CodeView() {
 
   return (
     <Card sx={{ width: 1, border: "1px solid #0001", m: 6 }} elevation={0}>
-      <Box id={EditorViewId} minHeight="400px" />
+      <Box id={EditorViewId} sx={{
+        ".cm-content, .cm-gutter": { minHeight: "400px" },
+        ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
+        ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily }
+      }}
+      />
     </Card>
   );
 }
