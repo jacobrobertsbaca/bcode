@@ -12,8 +12,8 @@ import ListItemText from "@mui/material/ListItemText";
 import React from "react";
 import { IconButton, SvgIcon } from "@mui/material";
 
-import RoomsIcon from "@heroicons/react/24/solid/CommandLineIcon";
-import SignOutIcon from "@heroicons/react/24/solid/ArrowLeftCircleIcon";
+import RoomsIcon from "@heroicons/react/24/outline/CommandLineIcon";
+import SignOutIcon from "@heroicons/react/24/outline/ArrowLeftCircleIcon";
 import MenuIcon from "@heroicons/react/24/solid/Bars3Icon";
 
 const DrawerWidth = 240;
@@ -31,8 +31,7 @@ export default function Navigation() {
       <AppBar
         sx={{
           zIndex: AppBarZ,
-          backdropFilter: "blur(6px)",
-          backgroundColor: "#ffffffaa",
+          backgroundColor: "transparent",
         }}
         elevation={0}
       >

@@ -6,15 +6,7 @@ export default function RoomLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Container
-      maxWidth="sm"
-      sx={{
-        minHeight: 1,
-        alignItems: "center",
-        display: "flex",
-        justifyContent: "center"
-      }}
-    >
+    <Container maxWidth="sm">
       {children}
     </Container>
   );

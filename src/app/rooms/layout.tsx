@@ -1,17 +1,11 @@
 import Navigation from "@/components/Navigation";
-import { Container } from "@mui/material";
+import { Box } from "@mui/material";
 
-export default function RoomsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RoomsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Container
-      maxWidth="md"
-    >
+    <Box>
       <Navigation />
       {children}
-    </Container>
+    </Box>
   );
 }

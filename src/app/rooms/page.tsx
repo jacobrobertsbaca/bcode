@@ -1,5 +1,7 @@
 import { courier } from "@/components/ThemeRegistry/fonts";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { IconButton, SvgIcon, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import RoomSidebarButton from "./RoomSidebar";
+
 
 const rooms = [
   { id: 1, room: "hello", code: "hello-room" },
@@ -10,25 +12,29 @@ const rooms = [
 
 export default function RoomsLayout() {
   return (
-      <Table sx={{ width: 1, position: "relative", top: ['48px', '56px', '64px'] }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>Room</TableCell>
-            <TableCell>Code</TableCell>
+    <Table sx={{ width: 1 }}>
+      <TableHead>
+        <TableRow sx={{
+          "th": { pb: "8px" }
+        }}>
+          <TableCell>
+            Room <RoomSidebarButton />
+          </TableCell>
+          <TableCell>Code</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rooms.map((r) => (
+          <TableRow hover key={r.id}>
+            <TableCell>{r.room}</TableCell>
+            <TableCell>
+              <Typography variant="inherit" fontFamily={courier.style.fontFamily}>
+                {r.code}
+              </Typography>
+            </TableCell>
           </TableRow>
-        </TableHead>
-        <TableBody>
-          {rooms.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell>{r.room}</TableCell>
-              <TableCell>
-                <Typography variant="inherit" fontFamily={courier.style.fontFamily}>
-                  {r.code}
-                </Typography>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

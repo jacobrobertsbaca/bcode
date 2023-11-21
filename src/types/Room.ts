@@ -1,0 +1,17 @@
+import { z } from "zod";
+
+export const RoomGroupSchema = z.object({
+  no: z.number().int().positive(),
+  name: z.string().trim().min(1, "Can't be empty").max(30, "Can't be more than 30 characters"),
+});
+
+export const RoomSchema = z.object({
+  code: z.string().regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_"),
+  name: z.string().trim().min(1, "Can't be empty").max(60, "Can't be more than 60 characters"),
+  groups: RoomGroupSchema.array()
+    .min(1)
+    .refine((arr) => new Set(arr.map((g) => g.no)).size === arr.length, "Can't have duplicate group numbers"),
+});
+
+export type RoomGroup = z.infer<typeof RoomGroupSchema>;
+export type Room = z.infer<typeof RoomSchema>;

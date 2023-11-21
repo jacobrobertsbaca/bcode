@@ -9,15 +9,23 @@ export const metadata = {
   description: "Next.js App Router + Material UI v5",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html style={{ height: "100%" }} lang="en">
       <body style={{ height: "100%" }}>
-        <ThemeRegistry>{children}</ThemeRegistry>
+        <ThemeRegistry>
+          <Container
+            maxWidth="lg"
+            sx={{
+              minHeight: 1,
+              alignItems: "center",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <Box width={1} m={6}>{children}</Box>
+          </Container>
+        </ThemeRegistry>
       </body>
     </html>
   );
