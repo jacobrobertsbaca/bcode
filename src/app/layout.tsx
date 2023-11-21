@@ -15,20 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html style={{ height: '100%' }} lang="en">
+      <body style={{ height: '100%' }}>
         <ThemeRegistry>
-          <Navigation />
-          <Container
-            maxWidth="lg"
-            sx={{
-              bgcolor: "background.default",
-              mt: ["48px", "56px", "64px"],
-              p: 3,
-            }}
-          >
-            {children}
-          </Container>
+          <Box p={3} height={1}>{children}</Box>
         </ThemeRegistry>
       </body>
     </html>
