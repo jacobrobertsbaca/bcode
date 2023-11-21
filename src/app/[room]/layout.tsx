@@ -7,13 +7,12 @@ export default function RoomLayout({
 }) {
   return (
     <Container
-      maxWidth="sm"
+      maxWidth="md"
       sx={{
-        height: 1,
-        flex: "1 1 auto",
+        minHeight: 1,
         alignItems: "center",
         display: "flex",
-        justifyContent: "center",
+        justifyContent: "center"
       }}
     >
       {children}

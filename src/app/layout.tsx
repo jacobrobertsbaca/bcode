@@ -15,11 +15,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html style={{ height: '100%' }} lang="en">
-      <body style={{ height: '100%' }}>
-        <ThemeRegistry>
-          <Box p={3} height={1}>{children}</Box>
-        </ThemeRegistry>
+    <html style={{ height: "100%" }} lang="en">
+      <body style={{ height: "100%" }}>
+        <ThemeRegistry>{children}</ThemeRegistry>
       </body>
     </html>
   );
