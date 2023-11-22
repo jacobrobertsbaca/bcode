@@ -41,10 +41,25 @@ function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
           } as Room
         }
         validationSchema={toFormikValidationSchema(RoomSchema)}
-        onSubmit={async (room, actions) => {
-          const { error } = await supabase.from("rooms").insert(room).select();
-          if (error) enqueueSnackbar(`Couldn't save room: ${error.message}`, { variant: "error" });
-          else router.push(`/rooms/${room.code}`);
+        onSubmit={(room, actions) => {
+          /* Wrap inside internal async function to keep button in
+           * a submit state while the new page loads. */
+          (async () => {
+            actions.setSubmitting(true);
+            const owner = (await supabase.auth.getUser()).data?.user?.id;
+            if (!owner) {
+              enqueueSnackbar(`Couldn't get current user. Are you connected?`, { variant: "error" });
+              return actions.setSubmitting(false);
+            }
+
+            const { error } = await supabase.from("rooms").insert({ owner, ...room });
+            if (error) {
+              enqueueSnackbar(`Couldn't save room: ${error.message}`, { variant: "error" });
+              return actions.setSubmitting(false);
+            }
+
+            router.push(`/rooms/${room.code}`);
+          })();
         }}
       >
         {(props) => (

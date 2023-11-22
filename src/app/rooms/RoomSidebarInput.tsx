@@ -28,7 +28,7 @@ export default function RoomSidebarInput() {
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
-              Students will see this name when connecting to the room
+              Students will see this name when connecting to the room.
             </Typography>
             <Typography variant="inherit" component="li">
               Choose something relevant to the problem you're doing, like{" "}
@@ -61,10 +61,11 @@ export default function RoomSidebarInput() {
               Students will add this to the end of the URL to connect to the room and start coding!
             </Typography>
             <Typography variant="inherit" component="li">
-              For example, they might connect to{" "}
+              For example, they link they'll connect to will look like{" "}
               <Typography display="inline" variant="inherit" fontWeight={600}>
-                cs106b.vercel.app/{formik.values.code.toLocaleLowerCase() || "my-code"}
+                106b.vercel.app/{formik.values.code.toLocaleLowerCase() || "my-code"}
               </Typography>
+              .
             </Typography>
           </Typography>
         }

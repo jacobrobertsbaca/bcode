@@ -1,17 +1,6 @@
-import { AppBar, Button, Container, IconButton, Stack, Toolbar, Typography } from "@mui/material";
+import SignInButton from "@/components/SignInButton";
+import { AppBar, Container, IconButton, Stack, Toolbar, Typography } from "@mui/material";
 import Image from "next/image";
-
-const GitHubIcon = () => (
-  <Image
-    alt="GitHub Logo"
-    width={20}
-    height={20}
-    src="/github.svg"
-    style={{
-      filter: "grayscale(1)",
-    }}
-  />
-);
 
 function LoginToolbar() {
   return (
@@ -25,7 +14,7 @@ function LoginToolbar() {
     >
       <Toolbar sx={{ backgroundColor: "transparent" }}>
         <IconButton href="https://github.com/jacobrobertsbaca/bcode">
-          <GitHubIcon />
+          <Image alt="GitHub Logo" width={20} height={20} src="/github.svg" />
         </IconButton>
       </Toolbar>
     </AppBar>
@@ -34,7 +23,7 @@ function LoginToolbar() {
 
 export default function HomePage() {
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="sm">
       <LoginToolbar />
       <Stack alignItems="center" spacing={2}>
         <Typography variant="h3" fontWeight={300}>
@@ -59,9 +48,7 @@ export default function HomePage() {
           </Typography>
         </Typography>
         <Typography>create collaborative section problems for CS106B</Typography>
-        <Button variant="text" fullWidth startIcon={<GitHubIcon />}>
-          Continue with GitHub
-        </Button>
+        <SignInButton />
       </Stack>
     </Container>
   );
