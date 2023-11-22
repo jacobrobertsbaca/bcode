@@ -19,8 +19,8 @@ import * as Y from "yjs";
 import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 
 import { yCollab } from "y-codemirror.next";
-import supabase from "@/provider/supabase";
 import { jakarta } from "@/components/ThemeRegistry/fonts";
+import supabase from "@/provider/client";
 
 function NameView() {
   const name = useRoomState((room) => room.name);

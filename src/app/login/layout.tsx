@@ -1,6 +1,6 @@
 import { Container } from "@mui/material";
 
-export default function RoomLayout({
+export default async function RoomLayout({
   children,
 }: {
   children: React.ReactNode;

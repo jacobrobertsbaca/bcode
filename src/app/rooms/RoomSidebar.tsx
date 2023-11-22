@@ -9,7 +9,7 @@ import PlusIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import RoomSidebarInput from "./RoomSidebarInput";
-import supabase from "@/provider/supabase";
+import supabase from "@/provider/client";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "next/navigation";
 
@@ -36,14 +36,14 @@ function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
             code: "",
             name: "",
             groups: [],
-            created: new Date().toISOString()
+            created: new Date().toISOString(),
           } as Room
         }
         validationSchema={toFormikValidationSchema(RoomSchema)}
         onSubmit={async (room, actions) => {
           const { error } = await supabase.from("rooms").insert(room).select();
           if (error) enqueueSnackbar(`Couldn't save room: ${error.message}`, { variant: "error" });
-          else router.push(`/rooms/${room.code}`);       
+          else router.push(`/rooms/${room.code}`);
         }}
       >
         {(props) => (

@@ -19,6 +19,7 @@
     "@mui/lab": "^5.0.0-alpha.153",
     "@mui/material": "latest",
     "@supabase/realtime-js": "^2.8.4",
+    "@supabase/ssr": "^0.0.10",
     "@supabase/supabase-js": "^2.38.5",
     "codemirror": "^6.0.1",
     "debug": "^4.3.4",
@@ -48,5 +49,8 @@
     "eslint-config-next": "latest",
     "supabase": "^1.113.2",
     "typescript": "latest"
+  }, 
+  "overrides": {
+    "node-gyp-build": "4.6.1"
   }
 }
