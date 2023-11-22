@@ -4,7 +4,7 @@ import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
 import { Room, RoomGroup } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
-import { Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Slider, Stack, Tooltip, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
 import { useState } from "react";
 
@@ -30,6 +30,7 @@ export default function RoomSidebarInput() {
 
   return (
     <Stack m={3} spacing={2}>
+      <Typography variant="subtitle2">Room Info</Typography>
       <Tooltip
         placement="left"
         arrow
@@ -90,6 +91,7 @@ export default function RoomSidebarInput() {
           }}
         />
       </Tooltip>
+      <Typography variant="subtitle2">Groups</Typography>
       <Tooltip
         placement="left"
         arrow
@@ -99,23 +101,24 @@ export default function RoomSidebarInput() {
               This is the number of groups where students can code together.
             </Typography>
             <Typography variant="inherit" component="li">
-              You'll be able to add or remove more groups later.
+              You'll be able to change this later.
             </Typography>
           </Typography>
         }
       >
-        <FormikTextField
-          name="groups"
-          label="Groups"
-          type="number"
-          value={groupsText}
-          onChange={(event) => {
-            setGroupsText(event.currentTarget.value);
-            let count = parseInt(event.currentTarget.value);
-            if (isNaN(count)) count = 0; 
-            formik.setFieldValue("groups", groupsForCount(count));
-          }}
-        />
+        <Box px={2}>
+          <Slider
+            aria-label="Groups"
+            defaultValue={1}
+            valueLabelDisplay="auto"
+            step={1}
+            min={1}
+            max={8}
+            marks
+            value={formik.values.groups.length}
+            onChange={(_, v) => formik.setFieldValue("groups", groupsForCount(v as number))}
+          />
+        </Box>
       </Tooltip>
       <LoadingButton variant="outlined" size="large" type="submit" loading={formik.isSubmitting}>
         <span>Save</span>

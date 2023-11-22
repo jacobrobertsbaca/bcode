@@ -56,6 +56,13 @@ const theme = createTheme({
           borderRadius: "10px !important"
         }
       }
+    },
+    MuiSlider: {
+      styleOverrides: {
+        thumb: {
+          color: "rgba(80, 80, 80, 1)"
+        }
+      }
     }
   },
 });
