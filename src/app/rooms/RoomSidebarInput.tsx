@@ -2,7 +2,7 @@
 
 import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
-import { Room } from "@/types/Room";
+import { Room, RoomGroup } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
 import { Stack, Tooltip, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
@@ -16,9 +16,17 @@ function maskCodeInput(code: string): string {
     .substring(0, 30);
 }
 
+function groupsForCount(count: number): RoomGroup[] {
+  return Array.from(Array(count).keys()).map((g) => ({
+    no: g + 1,
+    name: `Group ${g + 1}`,
+  }));
+}
+
 export default function RoomSidebarInput() {
   const formik = useFormikContext<Room>();
   const [codeModified, setCodeModified] = useState(false);
+  const [groupsText, setGroupsText] = useState("");
 
   return (
     <Stack m={3} spacing={2}>
@@ -79,6 +87,33 @@ export default function RoomSidebarInput() {
             setCodeModified(true);
             event.currentTarget.value = maskCodeInput(event.currentTarget.value);
             formik.handleChange(event);
+          }}
+        />
+      </Tooltip>
+      <Tooltip
+        placement="left"
+        arrow
+        title={
+          <Typography variant="inherit" component="ul" px="24px" py="8px">
+            <Typography variant="inherit" component="li">
+              This is the number of groups where students can code together.
+            </Typography>
+            <Typography variant="inherit" component="li">
+              You'll be able to add or remove more groups later.
+            </Typography>
+          </Typography>
+        }
+      >
+        <FormikTextField
+          name="groups"
+          label="Groups"
+          type="number"
+          value={groupsText}
+          onChange={(event) => {
+            setGroupsText(event.currentTarget.value);
+            let count = parseInt(event.currentTarget.value);
+            if (isNaN(count)) count = 0; 
+            formik.setFieldValue("groups", groupsForCount(count));
           }}
         />
       </Tooltip>
