@@ -30,16 +30,10 @@ const theme = createTheme({
         }
       }
     },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          boxShadow: "0 2px 6px rgba(0,0,0,.05)"
-        }
-      }
-    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
+          boxShadow: "0 2px 6px rgba(0,0,0,.05)",
           borderRadius: "10px",
           ["&.Mui-focused"]: {
             ["& .MuiOutlinedInput-notchedOutline"]: {
@@ -53,6 +47,13 @@ const theme = createTheme({
       styleOverrides: {
         head: {
           fontWeight: 500
+        }
+      }
+    },
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          borderRadius: "10px !important"
         }
       }
     }

@@ -6,11 +6,11 @@ export const RoomGroupSchema = z.object({
 });
 
 export const RoomSchema = z.object({
-  code: z.string().regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_"),
+  code: z.string().regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_").max(30, "Can't be more than 30 characters"),
   name: z.string().trim().min(1, "Can't be empty").max(60, "Can't be more than 60 characters"),
   groups: RoomGroupSchema.array()
-    .min(1)
     .refine((arr) => new Set(arr.map((g) => g.no)).size === arr.length, "Can't have duplicate group numbers"),
+  created: z.string().datetime()
 });
 
 export type RoomGroup = z.infer<typeof RoomGroupSchema>;

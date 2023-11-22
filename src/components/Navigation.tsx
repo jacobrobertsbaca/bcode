@@ -17,7 +17,7 @@ import SignOutIcon from "@heroicons/react/24/outline/ArrowLeftCircleIcon";
 import MenuIcon from "@heroicons/react/24/solid/Bars3Icon";
 
 const DrawerWidth = 240;
-const AppBarZ = 2000;
+const AppBarZ = 1000;
 
 const PlaceholderLinks = [
   { text: "Rooms", icon: RoomsIcon },
