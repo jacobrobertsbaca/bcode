@@ -4,6 +4,15 @@ import RoomSidebarButton from "./RoomSidebar";
 import createServer from "@/provider/server";
 import { Room } from "@/types/Room";
 
+function formatDateString(iso8601: string) {
+  const date = new Date(iso8601);
+  return date.toLocaleDateString('en-US', {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
 export default async function RoomsLayout() {
   const supabase = createServer();
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -27,6 +36,7 @@ export default async function RoomsLayout() {
             Room <RoomSidebarButton />
           </TableCell>
           <TableCell>Code</TableCell>
+          <TableCell>Created</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -38,6 +48,7 @@ export default async function RoomsLayout() {
                 {r.code}
               </Typography>
             </TableCell>
+            <TableCell>{formatDateString(r.created)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
