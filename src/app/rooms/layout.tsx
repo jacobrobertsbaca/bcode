@@ -1,5 +1,5 @@
 import Navigation from "@/components/Navigation";
-import supabase from "@/provider/server";
+import createServer from "@/provider/server";
 import { Box } from "@mui/material";
 import { redirect } from "next/navigation";
 
@@ -8,11 +8,12 @@ import { redirect } from "next/navigation";
  * Note that all rooms descending from this route are auth-protected.
  */
 export default async function RoomsLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
 
   return (
     <Box>

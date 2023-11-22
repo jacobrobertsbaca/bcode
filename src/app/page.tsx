@@ -1,16 +1,68 @@
-import * as React from "react";
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Unstable_Grid2";
-import Drawer from "@mui/material/Drawer";
-import Typography from "@mui/material/Typography";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
-import MediaCard from "@/components/MediaCard";
+import { AppBar, Button, Container, IconButton, Stack, Toolbar, Typography } from "@mui/material";
+import Image from "next/image";
+
+const GitHubIcon = () => (
+  <Image
+    alt="GitHub Logo"
+    width={20}
+    height={20}
+    src="/github.svg"
+    style={{
+      filter: "grayscale(1)",
+    }}
+  />
+);
+
+function LoginToolbar() {
+  return (
+    <AppBar
+      sx={{
+        zIndex: 2000,
+        backdropFilter: "blur(6px)",
+        backgroundColor: "#ffffffaa",
+      }}
+      elevation={0}
+    >
+      <Toolbar sx={{ backgroundColor: "transparent" }}>
+        <IconButton href="https://github.com/jacobrobertsbaca/bcode">
+          <GitHubIcon />
+        </IconButton>
+      </Toolbar>
+    </AppBar>
+  );
+}
 
 export default function HomePage() {
   return (
-    "hello"
+    <Container maxWidth="lg">
+      <LoginToolbar />
+      <Stack alignItems="center" spacing={2}>
+        <Typography variant="h3" fontWeight={300}>
+          <Typography variant="inherit" display="inline">
+            b
+          </Typography>
+          <Typography variant="inherit" display="inline" color="text.secondary">
+            code
+          </Typography>
+          <Typography
+            variant="inherit"
+            display="inline"
+            color="text.secondary"
+            sx={{
+              "@keyframes blinking": {
+                "50%": { opacity: 0 },
+              },
+              animation: "blinking 1s ease-in-out infinite",
+            }}
+          >
+            _
+          </Typography>
+        </Typography>
+        <Typography>create collaborative section problems for CS106B</Typography>
+        <Button variant="text" fullWidth startIcon={<GitHubIcon />}>
+          Continue with GitHub
+        </Button>
+      </Stack>
+    </Container>
   );
 }

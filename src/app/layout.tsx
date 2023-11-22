@@ -2,7 +2,7 @@ import * as React from "react";
 import Box from "@mui/material/Box";
 import ThemeRegistry from "@/components/ThemeRegistry/ThemeRegistry";
 import { Container } from "@mui/material";
-import supabase from "@/provider/server";
+import createServer from "@/provider/server";
 import AuthObserver from "@/components/AuthObserver";
 
 export const metadata = {
@@ -11,6 +11,7 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createServer();
   const { data: { session } } = await supabase.auth.getSession();
   return (
     <html style={{ height: "100%" }} lang="en">

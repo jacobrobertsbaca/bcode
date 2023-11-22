@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Box,
-  Card,
-  CircularProgress,
-  IconButton,
-  InputAdornment,
-  SvgIcon,
-  TextField,
-} from "@mui/material";
+import { Box, Card, IconButton, InputAdornment, SvgIcon, TextField } from "@mui/material";
 import GoIcon from "@heroicons/react/24/solid/ArrowRightIcon";
 import React, { useEffect } from "react";
 import { useRoomState } from "@/state";
@@ -20,7 +12,7 @@ import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 
 import { yCollab } from "y-codemirror.next";
 import { jakarta } from "@/components/ThemeRegistry/fonts";
-import supabase from "@/provider/client";
+import createClient from "@/provider/client";
 
 function NameView() {
   const name = useRoomState((room) => room.name);
@@ -68,6 +60,7 @@ function CodeView() {
     const parent = document.getElementById(EditorViewId)!;
     parent.replaceChildren();
 
+    const supabase = createClient();
     const doc = new Y.Doc();
     const provider = new SupabaseProvider(doc, supabase, {
       channel: "test",
@@ -89,14 +82,9 @@ function CodeView() {
     provider.on(SupabaseProviderEvents.Error, (err) => {
       console.log(err);
     });
-    
+
     new EditorView({
-      extensions: [
-        basicSetup,
-        cpp(),
-        ayuLight,
-        yCollab(ytext, provider.awareness, { undoManager }),
-      ],
+      extensions: [basicSetup, cpp(), ayuLight, yCollab(ytext, provider.awareness, { undoManager })],
       parent,
     });
 
@@ -105,11 +93,13 @@ function CodeView() {
 
   return (
     <Card sx={{ border: "1px solid #0001", m: 6, position: "relative" }} elevation={0}>
-      <Box id={EditorViewId} sx={{
-        ".cm-content, .cm-gutter": { minHeight: "400px" },
-        ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
-        ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily }
-      }}
+      <Box
+        id={EditorViewId}
+        sx={{
+          ".cm-content, .cm-gutter": { minHeight: "400px" },
+          ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
+          ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily },
+        }}
       />
 
       {/* TODO: Unhide this element when connection is lost or when loading.  */}

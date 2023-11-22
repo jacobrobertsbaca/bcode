@@ -9,7 +9,7 @@ import PlusIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import RoomSidebarInput from "./RoomSidebarInput";
-import supabase from "@/provider/client";
+import createClient from "@/provider/client";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +19,7 @@ type RoomSidebarProps = {
 };
 
 function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
+  const supabase = createClient();
   const router = useRouter();
   return (
     <Drawer

@@ -49,7 +49,7 @@
     "eslint-config-next": "latest",
     "supabase": "^1.113.2",
     "typescript": "latest"
-  }, 
+  },
   "overrides": {
     "node-gyp-build": "4.6.1"
   }

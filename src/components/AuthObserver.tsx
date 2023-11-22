@@ -2,12 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import supabase from "@/provider/client";
+import createClient from "@/provider/client";
 
 /**
  * React component to refresh Next.js router when auth changes.
  */
 export default function AuthObserver({ accessToken }: { accessToken?: string }) {
+  const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
