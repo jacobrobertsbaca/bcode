@@ -3,12 +3,12 @@
 import { Box, Card, IconButton, InputAdornment, SvgIcon, TextField } from "@mui/material";
 import GoIcon from "@heroicons/react/24/solid/ArrowRightIcon";
 import React, { useEffect } from "react";
-import { useRoomState } from "@/state";
+import { useRoomState } from "@/state/room";
 import { EditorView, basicSetup } from "codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { ayuLight } from "thememirror";
 import * as Y from "yjs";
-import { SupabaseProvider, SupabaseProviderEvents, SupabaseProviderStatus } from "@/provider";
+import { SupabaseProvider, SupabaseProviderEvents, ConnectionStatus } from "@/provider";
 
 import { yCollab } from "y-codemirror.next";
 import { jakarta } from "@/components/ThemeRegistry/fonts";
@@ -72,7 +72,7 @@ function CodeView() {
     const undoManager = new Y.UndoManager(ytext);
 
     provider.on(SupabaseProviderEvents.Status, (instance, status) => {
-      if (status !== SupabaseProviderStatus.Connected) return;
+      if (status !== ConnectionStatus.Connected) return;
       provider.awareness.setLocalStateField("user", {
         name,
         color: "#03b1fc",

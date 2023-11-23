@@ -1,20 +1,20 @@
 "use client";
 
-import { Box, CardHeader, CircularProgress, Link, Stack, SvgIcon, Typography } from "@mui/material";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { Box, CardHeader } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
 import { jakarta } from "../ThemeRegistry/fonts";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
-import { SupabaseProvider, SupabaseProviderEvents, SupabaseProviderStatus } from "@/provider";
-import { LiveUser, RoomStatus, useRoomState, useUserState } from "@/state";
+import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
+import { useRoomState } from "@/state/room";
 import { EditorView, basicSetup } from "codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { yCollab } from "y-codemirror.next";
 import { ayuLight } from "thememirror";
-import WifiOff from "@mui/icons-material/WifiOff";
-import ErrorOutline from "@mui/icons-material/ErrorOutline";
 import EditorFrame from "./EditorFrame";
-import { DoorBackOutlined } from "@mui/icons-material";
+import { ConnectionStatus } from "@/types/Connection";
+import EditorOverlay from "./EditorOverlay";
+import { LiveUser, useUserState } from "@/state/user";
 
 const kEditorViewId = "code-view";
 
@@ -24,63 +24,6 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
     color: user.color,
     colorLight: user.lightColor,
   });
-}
-
-enum EditorStatus { NoRoom = "room" };
-type OverlayStatus = SupabaseProviderStatus | EditorStatus;
-
-function combineStatus(provider: SupabaseProviderStatus, room: RoomStatus): OverlayStatus {
-  if (provider === SupabaseProviderStatus.DisconnectedError || room === RoomStatus.DisconnectedError)
-    return SupabaseProviderStatus.DisconnectedError;
-  if (provider === SupabaseProviderStatus.Connecting || room === RoomStatus.Connecting)
-    return SupabaseProviderStatus.Connecting;
-  if (provider === SupabaseProviderStatus.Disconnected || room === RoomStatus.Disconnected)
-    return SupabaseProviderStatus.DisconnectedError;
-  return SupabaseProviderStatus.Connected;
-}
-
-type EditorOverlayProps = {
-  status: OverlayStatus;
-  reload: () => void;
-}
-
-function EditorOverlay({ status, reload }: EditorOverlayProps) {
-  if (status === SupabaseProviderStatus.Connected) return null;
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 0,
-        backdropFilter: "blur(3px)",
-        alignItems: "center",
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      {status === SupabaseProviderStatus.Connecting ? (
-        <CircularProgress size={24} />
-      ) : (
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {status === SupabaseProviderStatus.Disconnected && <WifiOff />}
-            {status === SupabaseProviderStatus.DisconnectedError && <ErrorOutline />}
-            {status === EditorStatus.NoRoom && <DoorBackOutlined />}
-            <Typography variant="subtitle1">
-              {status === SupabaseProviderStatus.Disconnected && "You were disconnected from the group!"}
-              {status === SupabaseProviderStatus.DisconnectedError && "An error occurred."}
-              {status === EditorStatus.NoRoom && "It looks like the host closed this room."}
-            </Typography>
-          {status === SupabaseProviderStatus.DisconnectedError && (
-            <Link component="button" onClick={reload}>
-              Reload?
-            </Link>
-          )}
-          </Stack>
-      )}
-    </Box>
-  );
 }
 
 type EditorProps = {
@@ -93,10 +36,9 @@ export default function Editor({ group }: EditorProps) {
   const roomStatus = useRoomState(room => room.status);
 
   /** Editor state */
-  const user = useUserState();
+  const user = useUserState(state => state.user);
   const provider = useRef<SupabaseProvider>();
-  const [reloadCounter, reload] = useReducer((s) => s + 1, 0);
-  const [providerStatus, setProviderStatus] = useState<SupabaseProviderStatus>(SupabaseProviderStatus.Connecting);
+  const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
   const editorId = `${kEditorViewId}-${group}`;
 
   /* Setup code editor on mount */
@@ -105,9 +47,8 @@ export default function Editor({ group }: EditorProps) {
     const parentElem = document.getElementById(editorId)!;
     parentElem.replaceChildren();
 
-    // Render a no room overlay if we aren't connected to a room
-    setProviderStatus(SupabaseProviderStatus.Connecting);
-    if (roomStatus !== RoomStatus.Connected) return;
+    // If we're not connected to a room, we can't load the editor
+    if (roomStatus !== ConnectionStatus.Connected) return;
     const channel = `${room!.code}-${group}`;
 
     // Setup ydoc and connection to Supabase
@@ -122,9 +63,9 @@ export default function Editor({ group }: EditorProps) {
     const ytext = ydoc.getText("codemirror");
     const undoManager = new Y.UndoManager(ytext);
 
-    provider.current.on(SupabaseProviderEvents.Status, (instance: SupabaseProvider, status: SupabaseProviderStatus) => {
+    provider.current.on(SupabaseProviderEvents.Status, (instance: SupabaseProvider, status: ConnectionStatus) => {
       setProviderStatus(status);
-      if (status === SupabaseProviderStatus.Connected) updateProviderUser(instance, user);
+      if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
     });
 
     new EditorView({
@@ -135,12 +76,12 @@ export default function Editor({ group }: EditorProps) {
     return () => {
       provider.current?.destroy();
     };
-  }, [reloadCounter, roomStatus]);
+  }, [roomStatus]);
 
   /* Update the awareness user other people see (cursor color, name, etc.) if it changes */
   useEffect(() => {
     if (!provider.current) return;
-    if (provider.current.status !== SupabaseProviderStatus.Connected) return;
+    if (provider.current.status !== ConnectionStatus.Connected) return;
     updateProviderUser(provider.current, user);
   }, [user]);
 
@@ -156,7 +97,7 @@ export default function Editor({ group }: EditorProps) {
           ".cm-focused": { outline: "none" }
         }}
       />
-      <EditorOverlay status={combineStatus(providerStatus, roomStatus)} reload={reload} />
+      <EditorOverlay editorStatus={providerStatus} />
     </EditorFrame>
   );
 }

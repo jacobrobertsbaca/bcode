@@ -1,7 +1,7 @@
 "use client";
 
 import Editor from "@/components/code/Editor";
-import { useRoomState } from "@/state";
+import { useRoomState } from "@/state/room";
 import { Room } from "@/types/Room";
 import { Stack } from "@mui/material";
 import { useEffect } from "react";
