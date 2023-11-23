@@ -8,6 +8,7 @@ import { LiveUser, useUserState } from "./user";
 
 interface RoomMethods {
   join: (room: Room) => Promise<void>;
+  track: () => Promise<void>;
   leave: () => void;
 }
 
@@ -95,6 +96,13 @@ export const useRoomState = create<RoomState>((set, get) => ({
             break;
         }
       });
+  },
+
+  async track() {
+    const self = get();
+    if (self.status !== ConnectionStatus.Connected) return;
+    const user = useUserState.getState().user;
+    await self.channel!.track(user);
   },
 
   leave() {

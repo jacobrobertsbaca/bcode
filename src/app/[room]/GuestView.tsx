@@ -1,0 +1,199 @@
+"use client";
+
+import FormikTextField from "@/components/FormikTextField";
+import Editor from "@/components/code/Editor";
+import EditorFrame from "@/components/code/EditorFrame";
+import EditorOnline from "@/components/code/EditorOnline";
+import { OverlayAlert, OverlayBlur } from "@/components/code/EditorOverlay";
+import { useRoomState } from "@/state/room";
+import { useUserState } from "@/state/user";
+import { Room } from "@/types/Room";
+import { ArrowRightRounded, CloseRounded, DoorBackOutlined } from "@mui/icons-material";
+import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
+import {
+  IconButton,
+  InputAdornment,
+  Stack,
+  SvgIcon,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { Formik } from "formik";
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { toFormikValidationSchema } from "zod-formik-adapter";
+
+enum GuestViewStatus {
+  Name = "name",
+  Room = "room",
+}
+
+type ChooseNameViewProps = {
+  onNameSelected: () => void;
+};
+
+function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
+  const updateUser = useUserState((state) => state.updateUser);
+
+  return (
+    <Formik
+      initialValues={{
+        name: "",
+      }}
+      validationSchema={toFormikValidationSchema(
+        z.object({
+          name: z.string().trim().min(1).max(30),
+        })
+      )}
+      onSubmit={(values) => {
+        updateUser({
+          name: values.name,
+          isHost: false,
+          group: 0,
+        });
+        onNameSelected();
+      }}
+    >
+      {(props) => (
+        <form onSubmit={props.handleSubmit}>
+          <FormikTextField
+            name="name"
+            label="Name"
+            placeholder="What is your name?"
+            max={30}
+            fullWidth
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton size="small">
+                    <ArrowRightRounded />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </form>
+      )}
+    </Formik>
+  );
+}
+
+function ChooseGroupView() {
+  const room = useRoomState((state) => state.room);
+  const updateUser = useUserState((state) => state.updateUser);
+  const rowHeight = 65;
+
+  if (room === null)
+    return (
+      <EditorFrame>
+        <OverlayBlur>
+          <OverlayAlert icon={<DoorBackOutlined />}>It looks like you're not connected to the room.</OverlayAlert>
+        </OverlayBlur>
+      </EditorFrame>
+    );
+
+  return (
+    <EditorFrame>
+      <Table sx={{ width: 1 }}>
+        <TableBody>
+          {room.groups.map((group) => (
+            <TableRow
+              key={group.no}
+              hover
+              sx={{ cursor: "pointer", height: 65 }}
+              onClick={() => updateUser({ group: group.no })}
+            >
+              <TableCell>{group.name}</TableCell>
+              <TableCell>
+                <EditorOnline group={group.no} justifyContent="end" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </EditorFrame>
+  );
+}
+
+type GuestViewSelectorProps = {
+  view: GuestViewStatus;
+  setView: (view: GuestViewStatus) => void;
+};
+
+function GuestViewSelector({ view, setView }: GuestViewSelectorProps) {
+  const group = useUserState((state) => state.user.group);
+  const updateUser = useUserState((state) => state.updateUser);
+  if (view === GuestViewStatus.Name) return <ChooseNameView onNameSelected={() => setView(GuestViewStatus.Room)} />;
+  if (view === GuestViewStatus.Room) {
+    if (group === 0) return <ChooseGroupView />;
+    return (
+      <Editor
+        group={group}
+        action={
+          <Tooltip title="Leave group">
+            <IconButton size="small" onClick={() => updateUser({ group: 0 })}>
+              <SvgIcon>
+                <XMarkIcon />
+              </SvgIcon>
+            </IconButton>
+          </Tooltip>
+        }
+      />
+    );
+  }
+  return null;
+}
+
+function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
+  const group = useUserState((state) => state.user.group);
+  return (
+    <Stack>
+      <Typography variant="h4">
+        {view === GuestViewStatus.Name && "Joining "}
+        <Typography display="inline" variant="inherit" fontWeight={500}>
+          {room.name}
+        </Typography>
+      </Typography>
+      {view === GuestViewStatus.Room && group === 0 && <Typography variant="subtitle1">Select a group</Typography>}
+    </Stack>
+  );
+}
+
+/**
+ * The guest view renders on the client
+ * and displays the current coding editor for the selected room/group.
+ */
+export default function GuestView({ room }: { room: Room }) {
+  const [view, setView] = useState(GuestViewStatus.Name);
+  const track = useRoomState((room) => room.track);
+  const join = useRoomState((room) => room.join);
+  const leave = useRoomState((room) => room.leave);
+  const user = useUserState((state) => state.user);
+
+  /* If we have a local copy of room, use that instead.
+   * e.g. to handle cases where the room gets updated while users connected */
+  const localRoom = useRoomState((room) => room.room);
+  if (localRoom != null) room = localRoom;
+
+  /** Join the room on mount, leave on dismount */
+  useEffect(() => {
+    join(room);
+    return () => leave();
+  }, []);
+
+  /** Notify others in the room when our user changes */
+  useEffect(() => {
+    track();
+  }, [user]);
+
+  return (
+    <Stack spacing={2}>
+      <GuestViewTitle room={room} view={view} />
+      <GuestViewSelector view={view} setView={setView} />
+    </Stack>
+  );
+}

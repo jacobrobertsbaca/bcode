@@ -1,6 +1,16 @@
 import { createTheme } from '@mui/material/styles';
 import { jakarta } from './fonts';
 
+declare module '@mui/material/styles' {
+  interface Palette {
+    editor: Palette['primary'];
+  }
+
+  interface PaletteOptions {
+    editor?: PaletteOptions['primary'];
+  }
+}
+
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -8,7 +18,8 @@ const theme = createTheme({
     text: {
       primary: "rgba(0, 0, 0, 0.6)",
       secondary: "rgba(0, 0, 0, 0.26)"
-    }
+    },
+    editor: { main: "#fcfcfc" }
   },
   typography: {
     fontFamily: jakarta.style.fontFamily,
@@ -68,6 +79,13 @@ const theme = createTheme({
       styleOverrides: {
         thumb: {
           color: "rgba(80, 80, 80, 1)"
+        }
+      }
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          fontSize: "1rem"
         }
       }
     }

@@ -1,3 +1,5 @@
+"use client";
+
 import { useRoomState } from "@/state/room";
 import { useUserState } from "@/state/user";
 import { ConnectionStatus, mergeStatuses } from "@/types/Connection";
@@ -6,6 +8,26 @@ import ErrorOutline from "@mui/icons-material/ErrorOutline";
 import WifiOff from "@mui/icons-material/WifiOff";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
 import React from "react";
+
+export function OverlayBlur({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        backdropFilter: "blur(3px)",
+        alignItems: "center",
+        display: "flex",
+        justifyContent: "center",
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
 
 type OverlayAlertProps = {
   icon?: React.ReactNode;
@@ -17,7 +39,7 @@ type OverlayAlertProps = {
   final?: boolean;
 };
 
-function OverlayAlert({ icon, children, final }: OverlayAlertProps) {
+export function OverlayAlert({ icon, children, final }: OverlayAlertProps) {
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
       {icon}
@@ -43,7 +65,7 @@ export default function EditorOverlay({ editorStatus }: EditorOverlayProps) {
     const status = mergeStatuses(editorStatus, roomStatus);
     if (status === ConnectionStatus.Connecting) return <CircularProgress size={24} />;
     if (status === ConnectionStatus.DisconnectedError)
-      return <OverlayAlert icon={<ErrorOutline />}>An error occured</OverlayAlert>;
+      return <OverlayAlert icon={<ErrorOutline />}>An error occured.</OverlayAlert>;
     if (roomStatus === ConnectionStatus.Disconnected)
       return (
         <OverlayAlert icon={<DoorBackOutlined />} final={!user.isHost}>
@@ -56,22 +78,5 @@ export default function EditorOverlay({ editorStatus }: EditorOverlayProps) {
   })();
 
   if (content === null) return null;
-
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 0,
-        backdropFilter: "blur(3px)",
-        alignItems: "center",
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      {content}
-    </Box>
-  );
+  return <OverlayBlur>{content}</OverlayBlur>;
 }
