@@ -54,8 +54,9 @@ export default function RoomSidebarInput() {
           label="Name"
           max={60}
           onChange={(event) => {
+            console.log(formik.values);
             formik.handleChange(event);
-            if (codeModified) return;
+            if (codeModified || exists) return;
             formik.setFieldValue("code", maskCodeInput(event.currentTarget.value));
           }}
         />
@@ -79,7 +80,7 @@ export default function RoomSidebarInput() {
             )}
             {exists && (
               <Typography variant="inherit" component="li">
-                Cannot be changed once the room has been created
+                Cannot be changed once the room has been created.
               </Typography>
             )}
           </Typography>
@@ -105,7 +106,7 @@ export default function RoomSidebarInput() {
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
-              This is the number of groups where students can code together.
+              This is the number of groups that students can join.
             </Typography>
             {!exists && (
               <Typography variant="inherit" component="li">

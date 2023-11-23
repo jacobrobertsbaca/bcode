@@ -36,5 +36,5 @@ export async function getRooms(supabase: SupabaseClient, code?: string): Promise
   query = query.throwOnError();
 
   const { data } = await query;
-  return data as Room[];
+  return data?.map(d => ({ ...d, created: (new Date(d.created)).toISOString() })) as Room[];
 }

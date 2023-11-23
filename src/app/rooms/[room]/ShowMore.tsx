@@ -3,21 +3,12 @@
 import { Room } from "@/types/Room";
 import {
   CodeRounded,
-  ContentCopy,
-  ContentCut,
-  ContentPaste,
-  DeleteOutline,
   DeleteOutlineRounded,
-  Edit,
   EditOutlined,
-  EditRounded,
-  InsertLink,
-  InsertLinkOutlined,
   InsertLinkRounded,
-  ModeEditOutlineRounded,
   MoreVert,
 } from "@mui/icons-material";
-import { Divider, Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
@@ -91,7 +82,7 @@ export default function ShowMore({ room }: { room: Room }) {
       >
         <MenuItem onClick={onEdit}>
           <ListItemIcon>
-            <ModeEditOutlineRounded />
+            <EditOutlined />
           </ListItemIcon>
           <ListItemText>Edit</ListItemText>
         </MenuItem>

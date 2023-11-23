@@ -4,6 +4,7 @@ import { RealtimeChannel } from "@supabase/realtime-js";
 import createClient from "./provider/client";
 import { v4 } from "uuid";
 import { random } from "lodash";
+import debug from "debug";
 
 /**
  * Keeps track of details of a connected user, such as their name and color.
@@ -65,42 +66,28 @@ export const useUserState = create<LiveUser>(() => {
   };
 });
 
-interface RoomState {
-  view: "name" | "code";
-  name: string;
-  setName: (name: string) => void;
-  join: () => void;
-}
-
-export const useRoomState = create<RoomState>((set) => ({
-  name: "",
-  view: "name",
-  setName: (name: string) => set({ name }),
-  join: () => set({ view: "code" }),
-}));
-
-interface HostMethods {
+interface RoomMethods {
   join: (room: Room) => Promise<void>;
-  leave: () => Promise<void>;
+  leave: () => void;
 }
 
-interface HostStateDisconnected {
+interface RoomStateDisconnected {
   room: null;
   users: null;
   channel: null;
-  status: ConnectionStatus;
+  status: RoomStatus;
 }
 
-interface HostStateConnected {
+interface RoomStateConnected {
   room: Room;
   users: Record<number, LiveUser[]>;
   channel: RealtimeChannel;
-  status: ConnectionStatus;
+  status: RoomStatus;
 }
 
-type HostState = HostMethods & (HostStateConnected | HostStateDisconnected);
+type RoomState = RoomMethods & (RoomStateConnected | RoomStateDisconnected);
 
-enum ConnectionStatus {
+export enum RoomStatus {
   /**
    * Currently in the process of connecting to the room.
    * Loading UI can be displayed.
@@ -124,21 +111,25 @@ enum ConnectionStatus {
   DisconnectedError = "disconnected-error",
 }
 
-function emptyUsersForRoom(room: Room): HostStateConnected["users"] {
-  const users: HostStateConnected["users"] = {};
+function emptyUsersForRoom(room: Room): RoomStateConnected["users"] {
+  const users: RoomStateConnected["users"] = {};
   room.groups.forEach(g => users[g.no] = []);
   return users;
 }
 
-export const useHostState = create<HostState>((set, get) => ({
+const logger = debug("[ROOM]");
+logger.enabled = true;
+
+export const useRoomState = create<RoomState>((set, get) => ({
   room: null,
   users: null,
   channel: null,
-  status: ConnectionStatus.Disconnected,
+  status: RoomStatus.Disconnected,
 
   async join(room: Room) {
     if (get().room) throw new Error(`Already connected to room ${get().room?.code}`);
-    set({ status: ConnectionStatus.Connecting });
+    logger(`Connecting to room ${room.code}...`);
+    set({ status: RoomStatus.Connecting });
     const supabase = createClient();
     const channel = supabase.channel(room.code, {
       config: {
@@ -152,7 +143,7 @@ export const useHostState = create<HostState>((set, get) => ({
       .on("presence", { event: "sync" }, () => {
         /** When presence changes, we need to rebuild all users across all rooms. */
         const self = get();
-        if (!self.room) throw new Error("Received presence, but not connected to a room.");
+        if (!self.room) return;
         const users = emptyUsersForRoom(self.room);
         const state = channel.presenceState<LiveUser>();
         for (const presences of Object.values(state)) {
@@ -168,28 +159,41 @@ export const useHostState = create<HostState>((set, get) => ({
         switch (status) {
           case "SUBSCRIBED":
             /* Until we have synced, there are no users in any of the rooms */
+            const self = get();
+            if (self.status !== RoomStatus.Connecting) return;
             const users = emptyUsersForRoom(room);
-            set({ room, users, channel, status: ConnectionStatus.Connected });
+            set({ room, users, channel, status: RoomStatus.Connected });
+            logger(`Connection to room ${room.code} successful.`);
             break;
 
           case "CHANNEL_ERROR":
-          case "CLOSED":
           case "TIMED_OUT":
             if (err) console.log(err);
+            logger(`Error ${status} occurred in channel for room ${room.code}. Disconnecting.`);
             set({
               room: null,
               users: null,
               channel: null,
-              status: status === "CLOSED" ? ConnectionStatus.Disconnected : ConnectionStatus.DisconnectedError,
+              status: RoomStatus.DisconnectedError,
             });
             break;
         }
       });
   },
 
-  async leave() {
+  leave() {
     const self = get();
-    if (!self.channel) throw new Error("You must be connected to a room to leave.");
-    await self.channel.unsubscribe(); // This should fire "CLOSED" event above
+    if (self.status === RoomStatus.Disconnected || self.status === RoomStatus.DisconnectedError)
+      throw new Error("You must be connected to a room to leave.");
+    if (!self.room) logger("Leaving room before connection could be established. Disconnecting from channel.");
+    else logger(`Leaving room ${self.room?.code} and disconnecting from channel.`);
+    const channel = self.channel;
+    set({
+      room: null,
+      users: null,
+      channel: null,
+      status: RoomStatus.Disconnected,
+    });
+    channel?.unsubscribe();
   },
 }));

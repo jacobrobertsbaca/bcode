@@ -1,19 +1,26 @@
 "use client";
 
 import Editor from "@/components/code/Editor";
-import EditorFrame from "@/components/code/EditorFrame";
+import { useRoomState } from "@/state";
 import { Room } from "@/types/Room";
-import { Box, CardHeader, Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
+import { useEffect } from "react";
 
 /**
  * The host view renders on the client,
  * and displays a sequence of coding editors for each of the associated groups.
  */
 export default function HostView({ room }: { room: Room }) {
+  const join = useRoomState((room) => room.join);
+  const leave = useRoomState((room) => room.leave);
+  useEffect(() => {
+    join(room);
+    return () => leave();
+  }, []);
   return (
     <Stack spacing={4}>
       {room.groups.map((group) => (
-        <Editor title={group.name} channel={`${room.code}-${group.no}`} />
+        <Editor key={group.no} group={group.no} />
       ))}
     </Stack>
   );
