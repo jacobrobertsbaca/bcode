@@ -57,6 +57,13 @@ const theme = createTheme({
         }
       }
     },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          borderRadius: "0px !important"
+        }
+      }
+    },
     MuiSlider: {
       styleOverrides: {
         thumb: {

@@ -1,24 +1,12 @@
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import RoomSidebarButton from "./RoomSidebar";
+import { AddRoomButton } from "./RoomSidebar";
 import createServer from "@/provider/server";
-import { Room } from "@/types/Room";
+import { Room, getRooms } from "@/types/Room";
 import RoomRow from "./RoomRow";
 
 export default async function RoomsLayout() {
   const supabase = createServer();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || user === null) throw new Error("No user found");
-  const { data } = await supabase
-    .from("rooms")
-    .select("code, name, groups, created")
-    .eq("owner", user.id)
-    .order("created", { ascending: false })
-    .throwOnError();
-
-  const rooms = data as Room[];
+  const rooms = await getRooms(supabase);
 
   return (
     <Table sx={{ width: 1 }}>
@@ -29,7 +17,7 @@ export default async function RoomsLayout() {
           }}
         >
           <TableCell>
-            Room <RoomSidebarButton />
+            Room <AddRoomButton />
           </TableCell>
           <TableCell>Code</TableCell>
           <TableCell>Created</TableCell>

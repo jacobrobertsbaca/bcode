@@ -8,7 +8,7 @@ import { EditorView, basicSetup } from "codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { ayuLight } from "thememirror";
 import * as Y from "yjs";
-import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
+import { SupabaseProvider, SupabaseProviderEvents, SupabaseProviderStatus } from "@/provider";
 
 import { yCollab } from "y-codemirror.next";
 import { jakarta } from "@/components/ThemeRegistry/fonts";
@@ -71,7 +71,8 @@ function CodeView() {
     const ytext = doc.getText("codemirror");
     const undoManager = new Y.UndoManager(ytext);
 
-    provider.on(SupabaseProviderEvents.Connect, () => {
+    provider.on(SupabaseProviderEvents.Status, (instance, status) => {
+      if (status !== SupabaseProviderStatus.Connected) return;
       provider.awareness.setLocalStateField("user", {
         name,
         color: "#03b1fc",
@@ -79,16 +80,12 @@ function CodeView() {
       });
     });
 
-    provider.on(SupabaseProviderEvents.Error, (err) => {
-      console.log(err);
-    });
-
     new EditorView({
       extensions: [basicSetup, cpp(), ayuLight, yCollab(ytext, provider.awareness, { undoManager })],
       parent,
     });
 
-    return () => provider.destroy();
+    return () => void provider.destroy();
   }, []);
 
   return (

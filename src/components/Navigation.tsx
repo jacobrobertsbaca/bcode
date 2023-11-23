@@ -32,6 +32,7 @@ export default function Navigation() {
         sx={{
           zIndex: AppBarZ,
           backgroundColor: "transparent",
+          backdropFilter: "blur(6px)"
         }}
         elevation={0}
       >

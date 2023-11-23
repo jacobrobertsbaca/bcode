@@ -1,7 +1,7 @@
 "use client";
 
 import { Room, RoomSchema } from "@/types/Room";
-import { Divider, Drawer, IconButton, Stack, SvgIcon, Typography } from "@mui/material";
+import { Button, Divider, Drawer, IconButton, Stack, SvgIcon, Typography } from "@mui/material";
 import { Formik } from "formik";
 import React from "react";
 
@@ -14,11 +14,13 @@ import { enqueueSnackbar } from "notistack";
 import { useRouter } from "next/navigation";
 
 type RoomSidebarProps = {
+  room: Room;
   open: boolean;
   setOpen: (open: boolean) => void;
 };
 
-function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
+export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
+  const exists = !!room.code;
   const supabase = createClient();
   const router = useRouter();
   return (
@@ -32,20 +34,14 @@ function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
       }}
     >
       <Formik
-        initialValues={
-          {
-            code: "",
-            name: "",
-            groups: [],
-            created: new Date().toISOString(),
-          } as Room
-        }
+        initialValues={room}
         validationSchema={toFormikValidationSchema(RoomSchema)}
         onSubmit={(room, actions) => {
           /* Wrap inside internal async function to keep button in
            * a submit state while the new page loads. */
           (async () => {
             actions.setSubmitting(true);
+
             const owner = (await supabase.auth.getUser()).data?.user?.id;
             if (!owner) {
               enqueueSnackbar(`Couldn't get current user. Are you connected?`, { variant: "error" });
@@ -66,7 +62,7 @@ function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
           <form onSubmit={props.handleSubmit}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 2 }}>
               <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                Create Room
+                { exists ? "Edit Room" : "Create Room" }
               </Typography>
               <IconButton onClick={() => setOpen(false)}>
                 <SvgIcon>
@@ -83,11 +79,22 @@ function RoomSidebar({ open, setOpen }: RoomSidebarProps) {
   );
 }
 
-export default function RoomSidebarButton() {
+export function AddRoomButton() {
   const [open, setOpen] = React.useState(false);
   return (
     <>
-      <RoomSidebar open={open} setOpen={setOpen} />
+      <RoomSidebar
+        open={open}
+        setOpen={setOpen}
+        room={
+          {
+            code: "",
+            name: "",
+            groups: [],
+            created: new Date().toISOString(),
+          } as Room
+        }
+      />
       <IconButton onClick={() => setOpen(true)}>
         <SvgIcon>
           <PlusIcon />

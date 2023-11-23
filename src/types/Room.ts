@@ -1,3 +1,4 @@
+import { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 export const RoomGroupSchema = z.object({
@@ -20,3 +21,20 @@ export const RoomSchema = z.object({
 
 export type RoomGroup = z.infer<typeof RoomGroupSchema>;
 export type Room = z.infer<typeof RoomSchema>;
+
+export async function getRooms(supabase: SupabaseClient, code?: string): Promise<Room[]> {
+  /* Get current user */
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  const owner = userData.user.id;
+
+  /* Get rooms */
+  let query = supabase.from("rooms").select("code, name, groups, created").eq("owner", owner);
+
+  if (code !== undefined) query = query.eq("code", code);
+  else query = query.order("created", { ascending: false }); 
+  query = query.throwOnError();
+
+  const { data } = await query;
+  return data as Room[];
+}

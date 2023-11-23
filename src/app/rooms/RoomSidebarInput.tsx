@@ -25,8 +25,8 @@ function groupsForCount(count: number): RoomGroup[] {
 
 export default function RoomSidebarInput() {
   const formik = useFormikContext<Room>();
+  const exists = !!formik.initialValues.code;
   const [codeModified, setCodeModified] = useState(false);
-  const [groupsText, setGroupsText] = useState("");
 
   return (
     <Stack m={3} spacing={2}>
@@ -54,7 +54,6 @@ export default function RoomSidebarInput() {
           label="Name"
           max={60}
           onChange={(event) => {
-            console.log(formik.touched);
             formik.handleChange(event);
             if (codeModified) return;
             formik.setFieldValue("code", maskCodeInput(event.currentTarget.value));
@@ -69,19 +68,27 @@ export default function RoomSidebarInput() {
             <Typography variant="inherit" component="li">
               Students will add this to the end of the URL to connect to the room and start coding!
             </Typography>
-            <Typography variant="inherit" component="li">
-              For example, they link they'll connect to will look like{" "}
-              <Typography display="inline" variant="inherit" fontWeight={600}>
-                106b.vercel.app/{formik.values.code.toLocaleLowerCase() || "my-code"}
+            {!exists && (
+              <Typography variant="inherit" component="li">
+                For example, they link they'll connect to will look like{" "}
+                <Typography display="inline" variant="inherit" fontWeight={600}>
+                  106b.vercel.app/{formik.values.code.toLocaleLowerCase() || "my-code"}
+                </Typography>
+                .
               </Typography>
-              .
-            </Typography>
+            )}
+            {exists && (
+              <Typography variant="inherit" component="li">
+                Cannot be changed once the room has been created
+              </Typography>
+            )}
           </Typography>
         }
       >
         <FormikTextField
           name="code"
           label="Code"
+          disabled={exists}
           InputProps={{ sx: { fontFamily: courier.style.fontFamily } }}
           max={30}
           onChange={(event) => {
@@ -100,9 +107,11 @@ export default function RoomSidebarInput() {
             <Typography variant="inherit" component="li">
               This is the number of groups where students can code together.
             </Typography>
-            <Typography variant="inherit" component="li">
-              You'll be able to change this later.
-            </Typography>
+            {!exists && (
+              <Typography variant="inherit" component="li">
+                You'll be able to change this later.
+              </Typography>
+            )}
           </Typography>
         }
       >

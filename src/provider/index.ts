@@ -53,11 +53,47 @@ export type SupabaseProviderConfig = {
 };
 
 export enum SupabaseProviderEvents {
-  Connect = "connect",
+  /**
+   * Fired when a peer document update has arrived
+   * @param update {@link Uint8Array} A YJS document update
+   */
   Message = "message",
+
+  /**
+   * Fired when a peer awareness update has arrived
+   * @param update {@link Uint8Array} A YJS awareness update
+   */
   Awareness = "awareness",
-  Error = "error",
-  Disconnect = "disconnect",
+
+  /**
+   * Fired when the provider status changes.
+   * @param provider {@link SupabaseProvider} This provider
+   * @param status {@link SupabaseProviderStatus} The current provider status.
+   * @param error {@link (Error | undefined)} The associated error, if status is {@link SupabaseProviderStatus.DisconnectedError}
+   */
+  Status = "status",
+}
+
+export enum SupabaseProviderStatus {
+  /**
+   * The provider is in the process of connecting to the server.
+   */
+  Connecting = "connecting",
+
+  /**
+   * The provider is fully connected.
+   */
+  Connected = "connected",
+
+  /**
+   * The provider successfully disconnected from the server.
+   */
+  Disconnected = "disconnected",
+
+  /**
+   * The provider disconnected due to an error.
+   */
+  DisconnectedError = "disconnected-error",
 }
 
 enum ChannelEvents {
@@ -99,6 +135,9 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
 
 export class SupabaseProvider extends EventEmitter {
   public readonly awareness: AwarenessProtocol.Awareness;
+  public get status() {
+    return this._status;
+  }
 
   constructor(private doc: Y.Doc, private supabase: SupabaseClient, private config: SupabaseProviderConfig) {
     super();
@@ -112,7 +151,7 @@ export class SupabaseProvider extends EventEmitter {
       this.resync = setInterval(() => {
         const update = Y.encodeStateAsUpdateV2(this.doc);
         this.emit(SupabaseProviderEvents.Message, update);
-        if (this.connected && this.channel) {
+        if (this.status === SupabaseProviderStatus.Connected && this.channel) {
           this.channel.send({
             type: "broadcast",
             event: ChannelEvents.Message,
@@ -135,8 +174,6 @@ export class SupabaseProvider extends EventEmitter {
       process.on("exit", this.onUnloadBound);
     }
 
-    this.on(SupabaseProviderEvents.Connect, this.onConnect);
-    this.on(SupabaseProviderEvents.Disconnect, this.onDisconnect);
     this.on(SupabaseProviderEvents.Message, this.onMessage);
     this.on(SupabaseProviderEvents.Awareness, this.onAwareness);
 
@@ -146,41 +183,11 @@ export class SupabaseProvider extends EventEmitter {
     this.doc.on("update", this.onDocumentUpdateBound);
     this.awareness.on("update", this.onAwarenessUpdateBound);
 
+    /* Fire connection event before connecting to channel */
+    this._status = SupabaseProviderStatus.Connecting;
+    this.emit(SupabaseProviderEvents.Status, this, this.status, undefined);
+
     /* Connect client */
-    this.connect();
-  }
-
-  public destroy() {
-    this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
-    clearInterval(this.resync);
-
-    /* Remove awareness and unregister unload handlers */
-    this.onUnload();
-    if (typeof window !== "undefined") {
-      window.removeEventListener("beforeunload", this.onUnloadBound);
-    } else if (typeof process !== "undefined") {
-      process.off("exit", this.onUnloadBound);
-    }
-
-    /* Unbind from document/awareness callbacks */
-    this.doc.off("update", this.onDocumentUpdateBound);
-    this.awareness.off("update", this.onAwarenessUpdateBound);
-    this.disconnect();
-  }
-
-  /* Private methods */
-  private logger: Debugger;
-  private connected: boolean = false;
-  private channel: RealtimeChannel | null = null;
-  private resync: NodeJS.Timeout | undefined;
-  private previous: Uint8Array | null = null;
-  private saveDocumentDebounced: () => void;
-
-  private onUnloadBound: typeof this.onUnload;
-  private onDocumentUpdateBound: typeof this.onDocumentUpdate;
-  private onAwarenessUpdateBound: typeof this.onAwarenessUpdate;
-
-  private connect() {
     this.channel = this.supabase.channel(this.config.channel);
     this.channel
       .on("broadcast", { event: ChannelEvents.Message }, ({ payload }) => {
@@ -196,30 +203,78 @@ export class SupabaseProvider extends EventEmitter {
       .subscribe((status, err) => {
         switch (status) {
           case "SUBSCRIBED":
-            this.emit(SupabaseProviderEvents.Connect);
+            this.onSubscribed();
             break;
-          case "CHANNEL_ERROR":
-            this.emit(SupabaseProviderEvents.Error, err);
 
-            // On a channel error, there is nothing we can do. Must close the connection.
-            this.emit(SupabaseProviderEvents.Disconnect);
+          case "CHANNEL_ERROR":
+            this.destroyInternal(SupabaseProviderStatus.DisconnectedError, err);
             break;
-          case "CLOSED":
+
           case "TIMED_OUT":
-            this.emit(SupabaseProviderEvents.Disconnect);
+            this.destroyInternal(SupabaseProviderStatus.DisconnectedError, new Error("Realtime channel timed out."));
             break;
         }
       });
   }
 
-  private disconnect() {
-    if (!this.channel) return;
-    this.supabase.removeChannel(this.channel);
+  public async destroy() {
+    return this.destroyInternal(SupabaseProviderStatus.Disconnected);
   }
 
-  private async onConnect() {
-    this.logger("Successfully connected.");
-    this.logger("Loading document data from Supabase.");
+  /* Private methods */
+  private _status: SupabaseProviderStatus = SupabaseProviderStatus.Disconnected;
+  private logger: Debugger;
+  private channel: RealtimeChannel | null = null;
+  private resync: NodeJS.Timeout | undefined;
+  private previous: Uint8Array | null = null;
+  private saveDocumentDebounced: () => void;
+
+  private onUnloadBound: typeof this.onUnload;
+  private onDocumentUpdateBound: typeof this.onDocumentUpdate;
+  private onAwarenessUpdateBound: typeof this.onAwarenessUpdate;
+
+  private async destroyInternal(status: SupabaseProviderStatus, error?: any) {
+    /* Don't run destruction logic if already destroyed */
+    if (this.status === SupabaseProviderStatus.Disconnected || this.status === SupabaseProviderStatus.DisconnectedError)
+      return;
+    this._status = SupabaseProviderStatus.Disconnected;
+
+    this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
+    clearInterval(this.resync);
+
+    /* Remove awareness and unregister unload handlers */
+    this.onUnload();
+    if (typeof window !== "undefined") {
+      window.removeEventListener("beforeunload", this.onUnloadBound);
+    } else if (typeof process !== "undefined") {
+      process.off("exit", this.onUnloadBound);
+    }
+
+    /* Unbind from document/awareness callbacks */
+    this.doc.off("update", this.onDocumentUpdateBound);
+    this.awareness.off("update", this.onAwarenessUpdateBound);
+
+    /* Remove channel from Supabase if it hasn't been already */
+    if (this.channel) {
+      const removeChannelSuccess = await this.supabase.removeChannel(this.channel);
+      if (removeChannelSuccess !== "ok") {
+        status = SupabaseProviderStatus.DisconnectedError;
+        error = new Error("Failed to remove the Realtime channel.");
+      }
+      this.channel = null;
+    }
+
+    // Update awareness (keep all users except local)
+    const states = Array.from(this.awareness.getStates().keys()).filter((client) => client !== this.doc.clientID);
+    AwarenessProtocol.removeAwarenessStates(this.awareness, states, this);
+
+    this._status = status;
+    this.emit(SupabaseProviderEvents.Status, this, this.status, error);
+  }
+
+  private async onSubscribed() {
+    this.logger("Successfully connected to Realtime channel.");
+    this.logger("Loading document data from Supabase database.");
     const { data, error } = await this.supabase
       .from(this.config.diffView)
       .select(DiffColumns.Diffs)
@@ -227,9 +282,12 @@ export class SupabaseProvider extends EventEmitter {
       .maybeSingle();
 
     if (error) {
-      // TODO: Communicate error
       this.logger("Failed to retrieve document data from Supabase", error);
-    } else if (data) {
+      await this.destroyInternal(SupabaseProviderStatus.DisconnectedError, error);
+      return;
+    }
+
+    if (data) {
       this.logger("Retrieved data from Supabase.");
       const diffs: number[][] = data[DiffColumns.Diffs];
       try {
@@ -237,27 +295,17 @@ export class SupabaseProvider extends EventEmitter {
         Y.applyUpdateV2(this.doc, Y.mergeUpdatesV2(diffs.map((d) => Uint8Array.from(d))), this);
         this.previous = Y.encodeStateVector(this.doc);
       } catch (error) {
-        // TODO: Communicate error
         this.logger("Applying document updates resulted in error", error);
+        await this.destroyInternal(SupabaseProviderStatus.DisconnectedError, error);
+        return;
       }
     } else {
       this.logger("No data was retrieved from Supabase.");
     }
 
     this.logger("Succesfully connected.");
-    this.connected = true;
-  }
-
-  private onDisconnect() {
-    this.logger("Disconnecting provider.");
-
-    this.channel = null;
-    this.connected = false;
-
-    // Update awareness (keep all users except local)
-    // TODO: compare to broadcast channel behavior
-    const states = Array.from(this.awareness.getStates().keys()).filter((client) => client !== this.doc.clientID);
-    AwarenessProtocol.removeAwarenessStates(this.awareness, states, this);
+    this._status = SupabaseProviderStatus.Connected;
+    this.emit(SupabaseProviderEvents.Status, this, this.status, undefined);
   }
 
   /**
@@ -269,8 +317,6 @@ export class SupabaseProvider extends EventEmitter {
     const current = Y.encodeStateAsUpdateV2(this.doc);
     const diff = this.previous ? Y.diffUpdateV2(current, this.previous) : Y.encodeStateAsUpdateV2(this.doc);
     const content = Array.from(diff);
-
-    /* TODO: What does this do? */
     if (JSON.stringify([0, 0]) === JSON.stringify(content)) return;
 
     const record = {
@@ -281,15 +327,16 @@ export class SupabaseProvider extends EventEmitter {
     const { error } = await this.supabase.from(this.config.diffTable).insert(record);
 
     if (error) {
-      // TODO: Communicate error
-      throw error;
+      this.logger("Failed to save data to Supabase", error);
+      await this.destroyInternal(SupabaseProviderStatus.DisconnectedError, error);
+      return;
     }
 
     this.previous = Y.encodeStateVector(this.doc);
   }
 
   private onMessage(message: Uint8Array) {
-    if (this.connected && this.channel)
+    if (this.status === SupabaseProviderStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",
         event: ChannelEvents.Message,
@@ -298,7 +345,7 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   private onAwareness(message: Uint8Array) {
-    if (this.connected && this.channel)
+    if (this.status === SupabaseProviderStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",
         event: ChannelEvents.Awareness,

@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               justifyContent: "center",
             }}
           >
-            <Box width={1} m={6}>{children}</Box>
+            <Box width={1} mx={6} my={10}>{children}</Box>
           </Container>
         </ThemeRegistry>
       </body>
