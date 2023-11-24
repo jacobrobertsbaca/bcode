@@ -2,11 +2,12 @@
 
 import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
-import { Room, RoomGroup } from "@/types/Room";
+import { Room, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
-import { Box, Slider, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, CircularProgress, InputAdornment, Slider, Stack, Tooltip, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
-import { useState } from "react";
+import { debounce } from "lodash";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 function maskCodeInput(code: string): string {
   return code
@@ -16,17 +17,18 @@ function maskCodeInput(code: string): string {
     .substring(0, 30);
 }
 
-function groupsForCount(count: number): RoomGroup[] {
-  return Array.from(Array(count).keys()).map((g) => ({
-    no: g + 1,
-    name: `Group ${g + 1}`,
-  }));
-}
-
 export default function RoomSidebarInput() {
   const formik = useFormikContext<Room>();
   const exists = !!formik.initialValues.code;
   const [codeModified, setCodeModified] = useState(false);
+
+  const debouncedValidate = useMemo(
+    () => debounce(formik.validateForm, 500, { trailing: true }),
+    [formik.validateForm]
+  );
+  useEffect(() => {
+    debouncedValidate(formik.values);
+  }, [formik.values, debouncedValidate]);
 
   return (
     <Stack m={3} spacing={2}>
@@ -54,10 +56,10 @@ export default function RoomSidebarInput() {
           label="Name"
           max={60}
           onChange={(event) => {
-            console.log(formik.values);
             formik.handleChange(event);
             if (codeModified || exists) return;
-            formik.setFieldValue("code", maskCodeInput(event.currentTarget.value));
+            formik.setFieldValue("code", maskCodeInput(event.currentTarget.value), false);
+            formik.setFieldTouched("code", true, false);
           }}
         />
       </Tooltip>
@@ -90,7 +92,9 @@ export default function RoomSidebarInput() {
           name="code"
           label="Code"
           disabled={exists}
-          InputProps={{ sx: { fontFamily: courier.style.fontFamily } }}
+          InputProps={{
+            sx: { fontFamily: courier.style.fontFamily },
+          }}
           max={30}
           onChange={(event) => {
             setCodeModified(true);
@@ -110,7 +114,7 @@ export default function RoomSidebarInput() {
             </Typography>
             {!exists && (
               <Typography variant="inherit" component="li">
-                You'll be able to change this later.
+                You can change this later.
               </Typography>
             )}
           </Typography>
@@ -130,7 +134,13 @@ export default function RoomSidebarInput() {
           />
         </Box>
       </Tooltip>
-      <LoadingButton variant="outlined" size="large" type="submit" loading={formik.isSubmitting}>
+      <LoadingButton
+        variant="outlined"
+        size="large"
+        type="submit"
+        loading={formik.isSubmitting}
+        disabled={!formik.isValid}
+      >
         <span>Save</span>
       </LoadingButton>
     </Stack>

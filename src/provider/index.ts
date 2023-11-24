@@ -4,6 +4,7 @@ import * as AwarenessProtocol from "y-protocols/awareness";
 import EventEmitter from "events";
 import debug, { Debugger } from "debug";
 import { ConnectionStatus } from "@/types/Connection";
+import { debounce } from "lodash";
 
 export type SupabaseProviderConfig = {
   /** Name of the Supabase channel to connect to. */
@@ -88,29 +89,6 @@ enum DiffColumns {
 
 const DefaultResyncMs = 5000;
 const DefaultSaveMs = 5000;
-
-/**
- * Debounces a function.
- * @param func A function to debounce.
- * @param wait A number of milliseconds to wait between function invocations.
- * @returns A new function which will only be called at most once every {@link wait} milliseconds.
- */
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
-  let timeout: ReturnType<typeof setTimeout> | null;
-  return (...args: Parameters<T>): Promise<ReturnType<T>> => {
-    const later = () => {
-      timeout = null;
-      return func(...args);
-    };
-    clearTimeout(timeout!);
-    timeout = setTimeout(later, wait);
-    return new Promise((resolve) => {
-      if (!timeout) {
-        resolve(func(...args));
-      }
-    });
-  };
-}
 
 export class SupabaseProvider extends EventEmitter {
   public readonly awareness: AwarenessProtocol.Awareness;

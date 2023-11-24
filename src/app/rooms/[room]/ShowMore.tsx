@@ -1,22 +1,21 @@
 "use client";
 
 import { Room } from "@/types/Room";
-import {
-  CodeRounded,
-  DeleteOutlineRounded,
-  EditOutlined,
-  InsertLinkRounded,
-  MoreVert,
-} from "@mui/icons-material";
+import { CodeRounded, DeleteOutlineRounded, EditOutlined, InsertLinkRounded, MoreVert } from "@mui/icons-material";
 import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
+import createClient from "@/provider/client";
+import { useRoomState } from "@/state/room";
+import { useRouter } from "next-nprogress-bar";
 
 export default function ShowMore({ room }: { room: Room }) {
   const [editing, setEditing] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const updatePeers = useRoomState((state) => state.update);
+  const router = useRouter();
   const open = !!anchorEl;
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
@@ -49,7 +48,15 @@ export default function ShowMore({ room }: { room: Room }) {
         title={`Delete room '${room.name}'?`}
         desc={"This will permanently delete this room and any code that has been written for it."}
         onClose={() => setDeleting(false)}
-        onDelete={() => {}}
+        onDelete={async () => {
+          const supabase = createClient();
+          await Promise.all([
+            supabase.from("rooms").delete().eq("code", room.code).throwOnError(),
+            supabase.from("diffs").delete().like("channel", `${room.code}%`).throwOnError(),
+            updatePeers(null),
+          ]);
+          router.replace("/rooms");
+        }}
       />
       <Menu
         id="room-show-more"

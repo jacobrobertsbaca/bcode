@@ -5,10 +5,12 @@ import createClient from "../provider/client";
 import debug from "debug";
 import { ConnectionStatus } from "../types/Connection";
 import { LiveUser, useUserState } from "./user";
+import { enqueueSnackbar } from "notistack";
 
 interface RoomMethods {
   join: (room: Room) => Promise<void>;
   track: () => Promise<void>;
+  update: (room: Room | null) => Promise<void>;
   leave: () => void;
 }
 
@@ -28,9 +30,13 @@ interface RoomStateConnected {
 
 type RoomState = RoomMethods & (RoomStateConnected | RoomStateDisconnected);
 
+enum ChannelEvents {
+  Update = "update",
+}
+
 function emptyUsersForRoom(room: Room): RoomStateConnected["users"] {
   const users: RoomStateConnected["users"] = {};
-  room.groups.forEach(g => users[g.no] = []);
+  room.groups.forEach((g) => (users[g.no] = []));
   return users;
 }
 
@@ -53,6 +59,10 @@ export const useRoomState = create<RoomState>((set, get) => ({
         presence: {
           key: useUserState.getState().user.id,
         },
+        broadcast: {
+          self: true,
+          ack: true,
+        },
       },
     });
 
@@ -71,6 +81,27 @@ export const useRoomState = create<RoomState>((set, get) => ({
         }
 
         set({ users });
+      })
+      .on("broadcast", { event: ChannelEvents.Update }, ({ payload }) => {
+        const self = get();
+        if (!self.room) return;
+        logger("Received update to current room:", payload);
+        const room = payload.room as Room;
+
+        // The host has closed the room. Must disconnect from the room.
+        if (!room) {
+          self.leave();
+          return;
+        }
+
+        // The host has modified the room. Check if we are currently in a group
+        // that got removed, and move them to the waiting room
+        const userState = useUserState.getState();
+        if (userState.user.group !== 0 && !room.groups.find((g) => g.no === userState.user.group)) {
+          userState.updateUser({ group: 0 });
+          enqueueSnackbar("The host closed your group.");
+        }
+        set({ room });
       })
       .subscribe((status, err) => {
         switch (status) {
@@ -98,6 +129,18 @@ export const useRoomState = create<RoomState>((set, get) => ({
       });
   },
 
+  async update(room: Room | null) {
+    const self = get();
+    if (!self.room) return;
+    logger("Sending room update to participants: ", room);
+    const response = await self.channel!.send({
+      type: "broadcast",
+      event: ChannelEvents.Update,
+      payload: { room },
+    });
+    if (response !== "ok") throw new Error("Failed to notify participants");
+  },
+
   async track() {
     const self = get();
     if (self.status !== ConnectionStatus.Connected) return;
@@ -107,8 +150,7 @@ export const useRoomState = create<RoomState>((set, get) => ({
 
   leave() {
     const self = get();
-    if (self.status === ConnectionStatus.Disconnected || self.status === ConnectionStatus.DisconnectedError)
-      throw new Error("You must be connected to a room to leave.");
+    if (self.status === ConnectionStatus.Disconnected || self.status === ConnectionStatus.DisconnectedError) return;
     if (!self.room) logger("Leaving room before connection could be established. Disconnecting from channel.");
     else logger(`Leaving room ${self.room?.code} and disconnecting from channel.`);
     const channel = self.channel;

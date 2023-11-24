@@ -41,14 +41,19 @@ type OverlayAlertProps = {
 
 export function OverlayAlert({ icon, children, final }: OverlayAlertProps) {
   return (
-    <Stack direction="row" alignItems="center" spacing={1}>
+    <Stack direction="row" alignItems="center" spacing={2} mx={8}>
       {icon}
-      <Typography variant="subtitle1">{children}</Typography>
-      {!final && (
-        <Link component="button" onClick={() => window.location.reload()}>
-          Reload page?
-        </Link>
-      )}
+      <Typography variant="subtitle1" display="inline">
+        {children}
+        {!final && (
+          <>
+            {" "}
+            <Link display="inline" onClick={() => window.location.reload()}>
+              Reload page?
+            </Link>
+          </>
+        )}
+      </Typography>
     </Stack>
   );
 }
