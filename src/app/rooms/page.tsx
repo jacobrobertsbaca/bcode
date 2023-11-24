@@ -4,7 +4,7 @@ import createServer from "@/provider/server";
 import { getRooms } from "@/types/Room";
 import RoomRow from "./RoomRow";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function RoomsLayout() {
   const supabase = createServer();
