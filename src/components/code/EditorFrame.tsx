@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardProps } from "@mui/material";
 
 export default function EditorFrame({ sx, ...rest }: CardProps) {

@@ -24,7 +24,13 @@ export default async function HostRoomPage({ params }: { params: { room: string 
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Button startIcon={<QrCodeRounded />} variant="outlined" disableElevation>
+          <Button
+            startIcon={<QrCodeRounded />}
+            href={`/code/${room.code}`}
+            target="_blank"
+            variant="outlined"
+            disableElevation
+          >
             Code
           </Button>
           <Button

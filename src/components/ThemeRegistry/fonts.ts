@@ -1,4 +1,4 @@
-import { Courier_Prime, Plus_Jakarta_Sans } from 'next/font/google';
+import { Courier_Prime, Inter, Plus_Jakarta_Sans } from 'next/font/google';
 
 export const jakarta = Plus_Jakarta_Sans({
   weight: ['300', '400', '500', '700'],
