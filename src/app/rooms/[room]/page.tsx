@@ -18,7 +18,7 @@ export default async function HostRoomPage({ params }: { params: { room: string 
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack direction="row" justifyContent="space-between" alignItems="start" spacing={2}>
         <Stack>
           <Typography variant="h4">{room.name}</Typography>
           <Typography fontFamily={courier.style.fontFamily} variant="subtitle1">

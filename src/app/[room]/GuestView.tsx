@@ -28,6 +28,7 @@ import { Formik } from "formik";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
+import { ConnectionStatus } from "@/types/Connection";
 
 enum GuestViewStatus {
   Name = "name",
@@ -85,6 +86,7 @@ function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
 }
 
 function ChooseGroupView() {
+  const roomStatus = useRoomState((state) => state.status);
   const room = useRoomState((state) => state.room);
   const updateUser = useUserState((state) => state.updateUser);
 
@@ -92,7 +94,11 @@ function ChooseGroupView() {
     return (
       <EditorFrame>
         <OverlayBlur>
-          <OverlayAlert icon={<DoorBackOutlined />}>It looks like you're not connected to the room.</OverlayAlert>
+          <OverlayAlert icon={<DoorBackOutlined />} final={roomStatus === ConnectionStatus.Disconnected}>
+            {roomStatus === ConnectionStatus.DisconnectedError
+              ? "It looks like you lost connection to the room."
+              : "It looks like the host closed this room."}
+          </OverlayAlert>
         </OverlayBlur>
       </EditorFrame>
     );
