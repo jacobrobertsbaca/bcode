@@ -88,6 +88,13 @@ const theme = createTheme({
           fontSize: "1rem"
         }
       }
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: "10px"
+        }
+      }
     }
   },
 });

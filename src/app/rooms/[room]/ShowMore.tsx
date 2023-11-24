@@ -2,7 +2,7 @@
 
 import { Room } from "@/types/Room";
 import { DeleteOutlineRounded, EditOutlined, MoreVert } from "@mui/icons-material";
-import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
@@ -45,9 +45,17 @@ export default function ShowMore({ room }: { room: Room }) {
       <RoomSidebar open={editing} setOpen={setEditing} room={room} />
       <DeleteDialog
         open={deleting}
-        title={`Delete room '${room.name}'?`}
+        title={
+          <Typography variant="inherit">
+            Delete room{" "}
+            <Typography variant="inherit" fontWeight={600} display="inline">
+              {room.name}
+            </Typography>
+            ?
+          </Typography>
+        }
         desc={
-          "This will permanently delete this room and any code that has been written for it. Any participants in the room will be disconnected."
+          "This will permanently delete this room and any code that has been written for it. All participants in the room will be disconnected."
         }
         onClose={() => setDeleting(false)}
         onDelete={async () => {
