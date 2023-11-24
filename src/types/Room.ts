@@ -7,26 +7,28 @@ export const RoomGroupSchema = z.object({
   name: z.string().trim().min(1, "Can't be empty").max(30, "Can't be more than 30 characters"),
 });
 
+const CodeSchema = z
+  .string()
+  .regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_")
+  .max(30, "Can't be more than 30 characters");
+
 export const RoomSchema = z.object({
-  code: z
-    .string()
-    .regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_")
-    .max(30, "Can't be more than 30 characters")
-    .refine(async (code) => {
-      const supabase = createClient();
-      const { count } = await supabase
-        .from("rooms")
-        .select("*", { count: "exact", head: true })
-        .eq("code", code);
-      if (count !== null && count > 0) return false;
-      return true;
-    }, "Someone else has taken this code!"),
+  code: CodeSchema,
   name: z.string().trim().min(1, "Can't be empty").max(60, "Can't be more than 60 characters"),
   groups: RoomGroupSchema.array()
     .min(1, "You must have at least one group!")
     .max(8, "For performance reasons, you can't have more than 8 groups")
     .refine((arr) => new Set(arr.map((g) => g.no)).size === arr.length, "Can't have duplicate group numbers"),
   created: z.string().datetime(),
+});
+
+export const RoomSchemaNew = RoomSchema.extend({
+  code: CodeSchema.refine(async (code) => {
+    const supabase = createClient();
+    const { count } = await supabase.from("rooms").select("*", { count: "exact", head: true }).eq("code", code);
+    if (count !== null && count > 0) return false;
+    return true;
+  }, "There is already a room with this code!"),
 });
 
 export type RoomGroup = z.infer<typeof RoomGroupSchema>;

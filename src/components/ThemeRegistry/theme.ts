@@ -66,7 +66,7 @@ const theme = createTheme({
         root: {
           borderRadius: "10px !important"
         }
-      }
+      },
     },
     MuiMenuItem: {
       styleOverrides: {

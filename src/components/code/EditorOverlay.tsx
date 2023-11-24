@@ -48,7 +48,7 @@ export function OverlayAlert({ icon, children, final }: OverlayAlertProps) {
         {!final && (
           <>
             {" "}
-            <Link display="inline" onClick={() => window.location.reload()}>
+            <Link display="inline" onClick={() => window.location.reload()} sx={{ cursor: "pointer" }}>
               Reload page?
             </Link>
           </>

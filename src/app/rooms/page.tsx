@@ -1,4 +1,4 @@
-import { Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Divider, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { AddRoomButton } from "./RoomSidebar";
 import createServer from "@/provider/server";
 import { Room, getRooms } from "@/types/Room";
@@ -17,20 +17,33 @@ export default async function RoomsLayout() {
 
       <Table sx={{ width: 1 }}>
         <TableHead>
-          <TableRow
-            sx={{
-              th: { pb: "8px" },
-            }}
-          >
-            <TableCell>Room</TableCell>
-            <TableCell>Code</TableCell>
-            <TableCell>Created</TableCell>
-          </TableRow>
+          {rooms.length === 0 ? (
+            <TableRow>
+              <TableCell />
+            </TableRow>
+          ) : (
+            <TableRow
+              sx={{
+                th: { pb: "8px" },
+              }}
+            >
+              <TableCell>Room</TableCell>
+              <TableCell>Code</TableCell>
+              <TableCell>Created</TableCell>
+            </TableRow>
+          )}
         </TableHead>
         <TableBody>
           {rooms.map((r) => (
             <RoomRow room={r} />
           ))}
+          {rooms.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={3} height={200} align="center">
+                You haven't created any rooms. Click <AddRoomButton /> to create one.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </Stack>

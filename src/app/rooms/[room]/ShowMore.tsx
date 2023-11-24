@@ -1,7 +1,7 @@
 "use client";
 
 import { Room } from "@/types/Room";
-import { CodeRounded, DeleteOutlineRounded, EditOutlined, InsertLinkRounded, MoreVert } from "@mui/icons-material";
+import { DeleteOutlineRounded, EditOutlined, MoreVert } from "@mui/icons-material";
 import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
@@ -46,7 +46,9 @@ export default function ShowMore({ room }: { room: Room }) {
       <DeleteDialog
         open={deleting}
         title={`Delete room '${room.name}'?`}
-        desc={"This will permanently delete this room and any code that has been written for it."}
+        desc={
+          "This will permanently delete this room and any code that has been written for it. Any participants in the room will be disconnected."
+        }
         onClose={() => setDeleting(false)}
         onDelete={async () => {
           const supabase = createClient();
@@ -77,7 +79,7 @@ export default function ShowMore({ room }: { room: Room }) {
         }}
         TransitionComponent={Fade}
         sx={{
-          width: "320px",
+          width: "200px",
         }}
         slotProps={{
           paper: {
@@ -98,18 +100,6 @@ export default function ShowMore({ room }: { room: Room }) {
             <DeleteOutlineRounded />
           </ListItemIcon>
           <ListItemText>Delete</ListItemText>
-        </MenuItem>
-        <MenuItem>
-          <ListItemIcon>
-            <InsertLinkRounded />
-          </ListItemIcon>
-          <ListItemText>Show Link</ListItemText>
-        </MenuItem>
-        <MenuItem>
-          <ListItemIcon>
-            <CodeRounded />
-          </ListItemIcon>
-          <ListItemText>Visit</ListItemText>
         </MenuItem>
       </Menu>
     </>

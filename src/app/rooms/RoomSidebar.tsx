@@ -1,9 +1,9 @@
 "use client";
 
-import { Room, RoomSchema, groupsForCount } from "@/types/Room";
+import { Room, RoomSchema, RoomSchemaNew, groupsForCount } from "@/types/Room";
 import { Divider, Drawer, IconButton, Stack, SvgIcon, Typography } from "@mui/material";
 import { Formik } from "formik";
-import React, { useCallback } from "react";
+import React from "react";
 
 import PlusIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
@@ -38,7 +38,7 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
     >
       <Formik
         initialValues={room}
-        validationSchema={toFormikValidationSchema(RoomSchema)}
+        validationSchema={toFormikValidationSchema(exists ? RoomSchema : RoomSchemaNew)}
         validateOnChange={false}
         validateOnBlur={false}
         onSubmit={(room, actions) => {

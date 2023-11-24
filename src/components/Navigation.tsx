@@ -9,7 +9,7 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import React from "react";
+import React, { useCallback } from "react";
 import { IconButton, SvgIcon } from "@mui/material";
 
 import RoomsIcon from "@heroicons/react/24/outline/CommandLineIcon";
@@ -17,6 +17,9 @@ import SignOutIcon from "@heroicons/react/24/outline/ArrowLeftCircleIcon";
 import MenuIcon from "@heroicons/react/24/solid/Bars3Icon";
 import Logo from "./Logo";
 import { DoorBackOutlined, DoorBackRounded, LogoutRounded } from "@mui/icons-material";
+import Link from "next/link";
+import createClient from "@/provider/client";
+import { enqueueSnackbar } from "notistack";
 
 const DrawerWidth = 240;
 const AppBarZ = 1000;
@@ -28,6 +31,14 @@ const PlaceholderLinks = [
 
 export default function Navigation() {
   const [navOpen, setNavOpen] = React.useState(false);
+  const onClose = useCallback(() => setNavOpen(false), []);
+  const signOut = useCallback(async () => {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) enqueueSnackbar(`Failed to sign out: ${error.message}`, { variant: "error" });
+    onClose();
+  }, []);
+
   return (
     <>
       <AppBar
@@ -59,7 +70,7 @@ export default function Navigation() {
           },
         }}
         open={navOpen}
-        onClose={() => setNavOpen(false)}
+        onClose={onClose}
         anchor="left"
         variant="temporary"
         keepMounted
@@ -68,7 +79,7 @@ export default function Navigation() {
         <Divider sx={{ mt: "auto" }} />
         <List dense>
           <ListItem disablePadding>
-            <ListItemButton>
+            <ListItemButton component={Link} href="/rooms" onClick={onClose}>
               <ListItemIcon>
                 <DoorBackOutlined />
               </ListItemIcon>
@@ -76,7 +87,7 @@ export default function Navigation() {
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
-            <ListItemButton>
+            <ListItemButton onClick={signOut}>
               <ListItemIcon>
                 <LogoutRounded />
               </ListItemIcon>
