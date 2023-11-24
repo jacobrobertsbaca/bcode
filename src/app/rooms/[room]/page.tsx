@@ -8,8 +8,6 @@ import ShowMore from "./ShowMore";
 import Link from "next/link";
 import { QrCodeRounded } from "@mui/icons-material";
 
-export const dynamic = "force-dynamic";
-
 export default async function HostRoomPage({ params }: { params: { room: string } }) {
   const supabase = createServer();
   const rooms = await getRooms(supabase, params.room);

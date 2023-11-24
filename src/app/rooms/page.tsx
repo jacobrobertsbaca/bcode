@@ -1,8 +1,10 @@
-import { Divider, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { AddRoomButton } from "./RoomSidebar";
 import createServer from "@/provider/server";
-import { Room, getRooms } from "@/types/Room";
+import { getRooms } from "@/types/Room";
 import RoomRow from "./RoomRow";
+
+export const dynamic = "force-dynamic";
 
 export default async function RoomsLayout() {
   const supabase = createServer();
