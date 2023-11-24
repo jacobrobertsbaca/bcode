@@ -12,7 +12,9 @@ export const metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServer();
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   return (
     <html style={{ height: "100%" }} lang="en">
       <body style={{ height: "100%" }}>
@@ -27,7 +29,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               justifyContent: "center",
             }}
           >
-            <Box width={1} mx={6} my={10}>{children}</Box>
+            <Box width={1} mx={6} my={10}>
+              {children}
+            </Box>
           </Container>
         </ThemeRegistry>
       </body>

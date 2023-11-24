@@ -2,7 +2,7 @@
 
 import createClient from "@/provider/client";
 import { Button } from "@mui/material";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next-nprogress-bar";
 import { enqueueSnackbar } from "notistack";
 import Image from "next/image";
 

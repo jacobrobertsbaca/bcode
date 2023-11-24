@@ -1,21 +1,21 @@
 export enum ConnectionStatus {
   /**
-   * The provider is fully connected.
+   * We are fully connected to the service.
    */
   Connected = "0:connected",
 
   /**
-   * The provider successfully disconnected from the server.
+   * We successfully disconnected from the service without error.
    */
   Disconnected = "1:disconnected",
 
   /**
-   * The provider is in the process of connecting to the server.
+   * We are currently connecting to the service.
    */
   Connecting = "2:connecting",
 
   /**
-   * The provider disconnected due to an error.
+   * We disconnected from the service due to a fatal error.
    */
   DisconnectedError = "3:disconnected-error",
 }

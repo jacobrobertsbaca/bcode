@@ -91,6 +91,7 @@ export default function Editor({ group, action }: EditorProps) {
     <EditorFrame>
       <CardHeader
         title={room?.groups.find((g) => g.no === group)?.name ?? ""}
+        titleTypographyProps={{ variant: "h6", fontWeight: 400 }}
         action={
           <Stack direction="row" alignItems="center" spacing={1}>
             <EditorOnline group={group} />

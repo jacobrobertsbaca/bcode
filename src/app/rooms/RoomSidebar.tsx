@@ -11,7 +11,7 @@ import { toFormikValidationSchema } from "zod-formik-adapter";
 import RoomSidebarInput from "./RoomSidebarInput";
 import createClient from "@/provider/client";
 import { enqueueSnackbar } from "notistack";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next-nprogress-bar";
 
 type RoomSidebarProps = {
   room: Room;

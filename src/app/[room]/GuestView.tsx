@@ -8,9 +8,11 @@ import { OverlayAlert, OverlayBlur } from "@/components/code/EditorOverlay";
 import { useRoomState } from "@/state/room";
 import { useUserState } from "@/state/user";
 import { Room } from "@/types/Room";
-import { ArrowRightRounded, CloseRounded, DoorBackOutlined } from "@mui/icons-material";
+import { ArrowRightRounded, DoorBackOutlined } from "@mui/icons-material";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
 import {
+  Box,
+  Button,
   IconButton,
   InputAdornment,
   Stack,
@@ -46,7 +48,7 @@ function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
       }}
       validationSchema={toFormikValidationSchema(
         z.object({
-          name: z.string().trim().min(1).max(30),
+          name: z.string().trim().min(1, "Required").max(30),
         })
       )}
       onSubmit={(values) => {
@@ -69,7 +71,7 @@ function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton size="small">
+                  <IconButton size="small" onClick={() => props.submitForm()}>
                     <ArrowRightRounded />
                   </IconButton>
                 </InputAdornment>
@@ -85,7 +87,6 @@ function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
 function ChooseGroupView() {
   const room = useRoomState((state) => state.room);
   const updateUser = useUserState((state) => state.updateUser);
-  const rowHeight = 65;
 
   if (room === null)
     return (
@@ -97,19 +98,26 @@ function ChooseGroupView() {
     );
 
   return (
-    <EditorFrame>
+    <EditorFrame sx={{ minHeight: "unset" }}>
       <Table sx={{ width: 1 }}>
         <TableBody>
           {room.groups.map((group) => (
-            <TableRow
-              key={group.no}
-              hover
-              sx={{ cursor: "pointer", height: 65 }}
-              onClick={() => updateUser({ group: group.no })}
-            >
+            <TableRow key={group.no} sx={{ height: 75 }}>
               <TableCell>{group.name}</TableCell>
               <TableCell>
-                <EditorOnline group={group.no} justifyContent="end" />
+                <Stack direction="row" alignContent="center" justifyContent="end" spacing={2}>
+                  <EditorOnline group={group.no} alignItems="center" />
+                  <Box>
+                    <Button
+                      onClick={() => updateUser({ group: group.no })}
+                      variant="contained"
+                      sx={{ backgroundColor: "black" }}
+                      disableElevation
+                    >
+                      Join
+                    </Button>
+                  </Box>
+                </Stack>
               </TableCell>
             </TableRow>
           ))}
@@ -134,7 +142,7 @@ function GuestViewSelector({ view, setView }: GuestViewSelectorProps) {
       <Editor
         group={group}
         action={
-          <Tooltip title="Leave group">
+          <Tooltip title="Leave group" arrow>
             <IconButton size="small" onClick={() => updateUser({ group: 0 })}>
               <SvgIcon>
                 <XMarkIcon />
@@ -151,15 +159,12 @@ function GuestViewSelector({ view, setView }: GuestViewSelectorProps) {
 function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
   const group = useUserState((state) => state.user.group);
   return (
-    <Stack>
-      <Typography variant="h4">
-        {view === GuestViewStatus.Name && "Joining "}
-        <Typography display="inline" variant="inherit" fontWeight={500}>
-          {room.name}
-        </Typography>
+    <Typography variant="h5">
+      {view === GuestViewStatus.Name && "Join "}
+      <Typography display="inline" variant="inherit" fontWeight={view === GuestViewStatus.Name ? 500 : undefined}>
+        {room.name}
       </Typography>
-      {view === GuestViewStatus.Room && group === 0 && <Typography variant="subtitle1">Select a group</Typography>}
-    </Stack>
+    </Typography>
   );
 }
 

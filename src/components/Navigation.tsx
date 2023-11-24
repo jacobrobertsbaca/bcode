@@ -15,6 +15,8 @@ import { IconButton, SvgIcon } from "@mui/material";
 import RoomsIcon from "@heroicons/react/24/outline/CommandLineIcon";
 import SignOutIcon from "@heroicons/react/24/outline/ArrowLeftCircleIcon";
 import MenuIcon from "@heroicons/react/24/solid/Bars3Icon";
+import Logo from "./Logo";
+import { DoorBackOutlined, DoorBackRounded, LogoutRounded } from "@mui/icons-material";
 
 const DrawerWidth = 240;
 const AppBarZ = 1000;
@@ -32,7 +34,7 @@ export default function Navigation() {
         sx={{
           zIndex: AppBarZ,
           backgroundColor: "transparent",
-          backdropFilter: "blur(6px)"
+          backdropFilter: "blur(6px)",
         }}
         elevation={0}
       >
@@ -62,20 +64,25 @@ export default function Navigation() {
         variant="temporary"
         keepMounted
       >
+        <Logo variant="h6" mt={2} ml={2} />
         <Divider sx={{ mt: "auto" }} />
-        <List>
-          {PlaceholderLinks.map(({ text, icon: Icon }) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <SvgIcon>
-                    <Icon />
-                  </SvgIcon>
-                </ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+        <List dense>
+          <ListItem disablePadding>
+            <ListItemButton>
+              <ListItemIcon>
+                <DoorBackOutlined />
+              </ListItemIcon>
+              <ListItemText primary="Rooms" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton>
+              <ListItemIcon>
+                <LogoutRounded />
+              </ListItemIcon>
+              <ListItemText primary="Sign out" />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
     </>

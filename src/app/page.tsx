@@ -1,3 +1,4 @@
+import Logo from "@/components/Logo";
 import SignInButton from "@/components/SignInButton";
 import { AppBar, Container, IconButton, Stack, Toolbar, Typography } from "@mui/material";
 import Image from "next/image";
@@ -26,27 +27,7 @@ export default function HomePage() {
     <Container maxWidth="sm">
       <LoginToolbar />
       <Stack alignItems="center" spacing={2}>
-        <Typography variant="h3" fontWeight={300}>
-          <Typography variant="inherit" display="inline">
-            b
-          </Typography>
-          <Typography variant="inherit" display="inline" color="text.secondary">
-            code
-          </Typography>
-          <Typography
-            variant="inherit"
-            display="inline"
-            color="text.secondary"
-            sx={{
-              "@keyframes blinking": {
-                "50%": { opacity: 0 },
-              },
-              animation: "blinking 1s ease-in-out infinite",
-            }}
-          >
-            _
-          </Typography>
-        </Typography>
+        <Logo />
         <Typography>create collaborative section problems for CS106B</Typography>
         <SignInButton />
       </Stack>
