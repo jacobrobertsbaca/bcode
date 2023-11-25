@@ -14,7 +14,7 @@ function LoginToolbar() {
       elevation={0}
     >
       <Toolbar sx={{ backgroundColor: "transparent" }}>
-        <IconButton href="https://github.com/jacobrobertsbaca/bcode">
+        <IconButton href="https://github.com/jacobrobertsbaca/bcode" target="_blank">
           <Image alt="GitHub Logo" width={20} height={20} src="/github.svg" />
         </IconButton>
       </Toolbar>

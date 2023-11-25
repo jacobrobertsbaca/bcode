@@ -3,6 +3,11 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+/**
+ * The can't be used as codes because existing routes would shadow them
+ */
+const DisallowedCodes = ["rooms"];
+
 export const RoomGroupSchema = z.object({
   no: z.number().int().positive(),
   name: z.string().trim().min(1, "Can't be empty").max(30, "Can't be more than 30 characters"),
@@ -11,7 +16,10 @@ export const RoomGroupSchema = z.object({
 const CodeSchema = z
   .string()
   .regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_")
-  .max(30, "Can't be more than 30 characters");
+  .toLowerCase()
+  .min(1, "Can't be empty")
+  .max(30, "Can't be more than 30 characters")
+  .refine((code) => !DisallowedCodes.includes(code.toLocaleLowerCase()), "This room name is not allowed");
 
 export const RoomSchema = z.object({
   code: CodeSchema,

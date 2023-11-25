@@ -48,7 +48,7 @@ export default function RoomCode({ room }: { room: Room }) {
   }
 
   return (
-    <Stack spacing={{ xs: 8, sm: 8 }} alignItems="center" direction={{ sm: "column", md: "row" }}>
+    <>
       <AppBar sx={{ backgroundColor: "transparent", backdropFilter: "blur(6px)" }} elevation={0}>
         <Toolbar sx={{ backgroundColor: "transparent" }}>
           <Tooltip title="Copy Link" arrow>
@@ -67,24 +67,26 @@ export default function RoomCode({ room }: { room: Room }) {
           </Tooltip>
         </Toolbar>
       </AppBar>
-      <EditorFrame sx={{ minHeight: "unset", p: 4, flexShrink: 0 }}>
-        <QRCode
-          value={link}
-          fgColor="black"
-          bgColor="transparent"
-          style={{ width: "100%", height: "100%" }}
-          id={kQRCodeId}
-        />
-      </EditorFrame>
-      <Stack spacing={2}>
-        <Typography variant="h3" fontWeight={600} color="black">
-          {room.name}
-        </Typography>
-        <Typography variant="h4" fontFamily={courier.style.fontFamily} color="black" sx={{ wordWrap: "anywhere" }}>
-          {process.env.NEXT_PUBLIC_SITE_URL}/{room.code}
-        </Typography>
-        <EditorOnline />
+      <Stack spacing={{ xs: 8, sm: 8 }} alignItems="center" direction={{ sm: "column", md: "row" }}>
+        <EditorFrame sx={{ minHeight: "unset", p: 4, flexShrink: 1, minWidth: "225px" }}>
+          <QRCode
+            value={link}
+            fgColor="black"
+            bgColor="transparent"
+            style={{ width: "100%", height: "100%" }}
+            id={kQRCodeId}
+          />
+        </EditorFrame>
+        <Stack spacing={2}>
+          <Typography variant="h3" fontWeight={600} color="black">
+            {room.name}
+          </Typography>
+          <Typography variant="h4" fontFamily={courier.style.fontFamily} color="black" sx={{ wordWrap: "anywhere" }}>
+            {process.env.NEXT_PUBLIC_SITE_URL_SHORT}/{room.code}
+          </Typography>
+          <EditorOnline />
+        </Stack>
       </Stack>
-    </Stack>
+    </>
   );
 }

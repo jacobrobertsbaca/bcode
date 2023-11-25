@@ -75,7 +75,7 @@ export default function RoomSidebarInput() {
               <Typography variant="inherit" component="li">
                 For example, they link they'll connect to will look like{" "}
                 <Typography display="inline" variant="inherit" fontWeight={600}>
-                  {process.env.NEXT_PUBLIC_SITE_URL}/{formik.values.code.toLocaleLowerCase() || "my-code"}
+                  {process.env.NEXT_PUBLIC_SITE_URL_SHORT}/{formik.values.code.toLocaleLowerCase() || "my-code"}
                 </Typography>
                 .
               </Typography>
