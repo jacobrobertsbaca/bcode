@@ -16,7 +16,8 @@ const kQRCodeId = "qr-code";
 
 export default function RoomCode({ room }: { room: Room }) {
   const link = `${process.env.NEXT_PUBLIC_SITE_URL}/${room.code}`;
-  useRoom(room, true);
+  const localRoom = useRoom(room, true);
+  if (localRoom != null) room = localRoom;
 
   async function copyToClipboard() {
     await navigator.clipboard.writeText(link);

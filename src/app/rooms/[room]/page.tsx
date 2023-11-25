@@ -1,17 +1,17 @@
 import { courier } from "@/components/ThemeRegistry/fonts";
 import createServer from "@/provider/server";
 import { getRoom } from "@/types/Room";
-import { Button, Stack, Typography } from "@mui/material";
+import { Button, Stack, SvgIcon, Typography } from "@mui/material";
 import HostView from "./HostView";
 import ShowMore from "./ShowMore";
 import Link from "next/link";
-import { QrCodeRounded } from "@mui/icons-material";
+import SquaresIcon from "@heroicons/react/24/outline/Squares2X2Icon";
 import EditorOnline from "@/components/code/EditorOnline";
 
-export async function generateMetadata({ params }: { params: { room: string }}) {
+export async function generateMetadata({ params }: { params: { room: string } }) {
   const room = await getRoom(createServer(), params.room);
   return {
-    title: room.name
+    title: room.name,
   };
 }
 
@@ -29,7 +29,11 @@ export default async function HostRoomPage({ params }: { params: { room: string 
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Button
-            startIcon={<QrCodeRounded />}
+            startIcon={
+              <SvgIcon>
+                <SquaresIcon />
+              </SvgIcon>
+            }
             href={`/code/${room.code}`}
             target="_blank"
             variant="outlined"
