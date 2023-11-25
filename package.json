@@ -1,13 +1,14 @@
 {
-  "name": "material-ui-nextjs-ts",
-  "version": "5.0.0",
-  "private": true,
+  "name": "bcode",
+  "version": "1.0.0",
+  "private": false,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest"
+    "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest",
+    "analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.2",
@@ -43,6 +44,7 @@
     "zustand": "^4.4.6"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.0.3",
     "@types/debug": "^4.1.12",
     "@types/events": "^3.0.3",
     "@types/lodash": "^4.14.202",

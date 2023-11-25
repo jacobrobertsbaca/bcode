@@ -19,4 +19,13 @@ const nextConfig = {
   },
 };
 
+/* Enable bundle analysis if ANALYZE is true */
+if (process.env.ANALYZE === 'true') {
+  const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: process.env.ANALYZE === 'true',
+  })
+  module.exports = withBundleAnalyzer(nextConfig);
+  return;
+}
+
 module.exports = nextConfig;

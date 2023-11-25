@@ -47,13 +47,13 @@ export default function ShowMore({ room }: { room: Room }) {
       <DeleteDialog
         open={deleting}
         title={
-          <Typography variant="inherit">
+          <>
             Delete room{" "}
             <Typography variant="inherit" fontWeight={600} display="inline">
               {room.name}
             </Typography>
             ?
-          </Typography>
+          </>
         }
         desc={
           "This will permanently delete this room and any code that has been written for it. All participants in the room will be disconnected."
