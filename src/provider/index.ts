@@ -108,13 +108,6 @@ export class SupabaseProvider extends EventEmitter {
       this.resync = setInterval(() => {
         const update = Y.encodeStateAsUpdateV2(this.doc);
         this.emit(SupabaseProviderEvents.Message, update);
-        if (this.status === ConnectionStatus.Connected && this.channel) {
-          this.channel.send({
-            type: "broadcast",
-            event: ChannelEvents.Message,
-            payload: Array.from(update),
-          });
-        }
       }, this.config.resyncInterval || DefaultResyncMs);
     }
 
