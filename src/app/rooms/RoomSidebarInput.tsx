@@ -4,7 +4,7 @@ import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
 import { Room, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
-import { Box, Slider, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { debounce } from "lodash";
 import { useEffect, useMemo, useState } from "react";
@@ -22,6 +22,11 @@ export default function RoomSidebarInput() {
   const exists = !!formik.initialValues.code;
   const [codeModified, setCodeModified] = useState(false);
 
+  // Use breakpoint for tooltip placement
+  const theme = useTheme();
+  const sm = useMediaQuery(theme.breakpoints.up(900));
+  const placement = sm ? "left" : "bottom";
+
   const debouncedValidate = useMemo(
     () => debounce(formik.validateForm, 500, { trailing: true }),
     [formik.validateForm]
@@ -34,7 +39,7 @@ export default function RoomSidebarInput() {
     <Stack m={3} spacing={2}>
       <Typography variant="subtitle2">Room Info</Typography>
       <Tooltip
-        placement="left"
+        placement={placement}
         arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
@@ -64,7 +69,7 @@ export default function RoomSidebarInput() {
         />
       </Tooltip>
       <Tooltip
-        placement="left"
+        placement={placement}
         arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
@@ -105,7 +110,7 @@ export default function RoomSidebarInput() {
       </Tooltip>
       <Typography variant="subtitle2">Groups</Typography>
       <Tooltip
-        placement="left"
+        placement={placement}
         arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
@@ -130,7 +135,7 @@ export default function RoomSidebarInput() {
             max={8}
             marks
             value={formik.values.groups.length}
-            onChange={(_, v) => formik.setFieldValue("groups", groupsForCount(v as number))}
+            onChange={(_, v) => formik.setFieldValue("groups", groupsForCount(v as number))}  
           />
         </Box>
       </Tooltip>
