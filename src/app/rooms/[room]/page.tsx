@@ -1,25 +1,29 @@
 import { courier } from "@/components/ThemeRegistry/fonts";
 import createServer from "@/provider/server";
-import { getRooms } from "@/types/Room";
+import { getRoom } from "@/types/Room";
 import { Button, Stack, Typography } from "@mui/material";
-import { notFound } from "next/navigation";
 import HostView from "./HostView";
 import ShowMore from "./ShowMore";
 import Link from "next/link";
 import { QrCodeRounded } from "@mui/icons-material";
+import EditorOnline from "@/components/code/EditorOnline";
+
+export async function generateMetadata({ params }: { params: { room: string }}) {
+  const room = await getRoom(createServer(), params.room);
+  return {
+    title: room.name
+  };
+}
 
 export default async function HostRoomPage({ params }: { params: { room: string } }) {
-  const supabase = createServer();
-  const rooms = await getRooms(supabase, params.room);
-  if (rooms.length === 0) return notFound();
-  const room = rooms[0];
+  const room = await getRoom(createServer(), params.room);
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="start" spacing={2}>
-        <Stack>
+      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems="start" spacing={2}>
+        <Stack spacing={1}>
           <Typography variant="h4">{room.name}</Typography>
-          <Typography fontFamily={courier.style.fontFamily} variant="subtitle1">
+          <Typography fontFamily={courier.style.fontFamily} variant="h5">
             {room.code}
           </Typography>
         </Stack>
@@ -46,6 +50,7 @@ export default async function HostRoomPage({ params }: { params: { room: string 
           <ShowMore room={room} />
         </Stack>
       </Stack>
+      <EditorOnline />
       <HostView room={room} />
     </Stack>
   );

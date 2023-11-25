@@ -6,6 +6,8 @@ import debug from "debug";
 import { ConnectionStatus } from "../types/Connection";
 import { LiveUser, useUserState } from "./user";
 import { enqueueSnackbar } from "notistack";
+import { useEffect } from "react";
+import { random } from "lodash";
 
 interface RoomMethods {
   join: (room: Room) => Promise<void>;
@@ -37,6 +39,7 @@ enum ChannelEvents {
 function emptyUsersForRoom(room: Room): RoomStateConnected["users"] {
   const users: RoomStateConnected["users"] = {};
   room.groups.forEach((g) => (users[g.no] = []));
+  users[0] = [];    // Always include bucket for "waiting group"
   return users;
 }
 
@@ -163,3 +166,44 @@ export const useRoomState = create<RoomState>((set, get) => ({
     channel?.unsubscribe();
   },
 }));
+
+const guestColors = [
+  { color: "#30bced", light: "#30bced33" },
+  { color: "#6eeb83", light: "#6eeb8333" },
+  { color: "#ffbc42", light: "#ffbc4233" },
+  { color: "#ecd444", light: "#ecd44433" },
+  { color: "#ee6352", light: "#ee635233" },
+  { color: "#9ac2c9", light: "#9ac2c933" },
+  { color: "#8acb88", light: "#8acb8833" },
+  { color: "#1be7ff", light: "#1be7ff33" },
+];
+
+export function useRoom(room: Room, host: boolean) {
+  const user = useUserState((state) => state.user);
+  const updateUser = useUserState((state) => state.updateUser);
+  const join = useRoomState((state) => state.join);
+  const track = useRoomState((state) => state.track);
+  const leave = useRoomState((state) => state.leave);
+  const localRoom = useRoomState((state) => state.room);
+
+  /* Connect to room on mount, disconnect on unmount */
+  useEffect(() => {
+    /* Update this user depending on whether they are the host or not */
+    if (host) {
+      updateUser({ isHost: true, name: "Host", color: "#000000", lightColor: "#00000033" });
+    } else {
+      const guestColor = guestColors[random(0, guestColors.length - 1)];
+      updateUser({ isHost: false, color: guestColor.color, lightColor: guestColor.light });
+    }
+
+    join(room);
+    return () => leave();
+  }, []);
+
+  /* If we are not the host, notify others of user changes */
+  useEffect(() => {
+    if (!host) track();
+  }, [user]);
+
+  return localRoom;
+}

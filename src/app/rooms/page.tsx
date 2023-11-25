@@ -3,8 +3,12 @@ import { AddRoomButton } from "./RoomSidebar";
 import createServer from "@/provider/server";
 import { getRooms } from "@/types/Room";
 import RoomRow from "./RoomRow";
+import { Metadata } from "next";
 
 export const revalidate = 0;
+export const metadata: Metadata = {
+  title: "Rooms"
+};
 
 export default async function RoomsLayout() {
   const supabase = createServer();

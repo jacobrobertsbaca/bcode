@@ -4,10 +4,11 @@ import ThemeRegistry from "@/components/ThemeRegistry/ThemeRegistry";
 import { Container } from "@mui/material";
 import createServer from "@/provider/server";
 import AuthObserver from "@/components/AuthObserver";
+import { Metadata } from "next";
 
-export const metadata = {
-  title: "Next.js App Router + Material UI v5",
-  description: "Next.js App Router + Material UI v5",
+export const metadata: Metadata = {
+  title: "bcode",
+  description: "Create collaborative section problems for CS106B",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

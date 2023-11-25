@@ -1,5 +1,6 @@
 import createClient from "@/provider/client";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { notFound } from "next/navigation";
 import { z } from "zod";
 
 export const RoomGroupSchema = z.object({
@@ -57,4 +58,10 @@ export function groupsForCount(count: number): RoomGroup[] {
     no: g + 1,
     name: `Group ${g + 1}`,
   }));
+}
+
+export async function getRoom(supabase: SupabaseClient, code: string): Promise<Room> {
+  const rooms = await getRooms(supabase, code);
+  if (rooms.length === 0) return notFound();
+  return rooms[0];
 }

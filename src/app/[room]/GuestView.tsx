@@ -5,7 +5,7 @@ import Editor from "@/components/code/Editor";
 import EditorFrame from "@/components/code/EditorFrame";
 import EditorOnline from "@/components/code/EditorOnline";
 import { OverlayAlert, OverlayBlur } from "@/components/code/EditorOverlay";
-import { useRoomState } from "@/state/room";
+import { useRoom, useRoomState } from "@/state/room";
 import { useUserState } from "@/state/user";
 import { Room } from "@/types/Room";
 import { ArrowRightRounded, DoorBackOutlined } from "@mui/icons-material";
@@ -25,7 +25,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Formik } from "formik";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ConnectionStatus } from "@/types/Connection";
@@ -180,26 +180,8 @@ function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
  */
 export default function GuestView({ room }: { room: Room }) {
   const [view, setView] = useState(GuestViewStatus.Name);
-  const track = useRoomState((room) => room.track);
-  const join = useRoomState((room) => room.join);
-  const leave = useRoomState((room) => room.leave);
-  const user = useUserState((state) => state.user);
-
-  /* If we have a local copy of room, use that instead.
-   * e.g. to handle cases where the room gets updated while users connected */
-  const localRoom = useRoomState((room) => room.room);
+  const localRoom = useRoom(room, false);
   if (localRoom != null) room = localRoom;
-
-  /** Join the room on mount, leave on dismount */
-  useEffect(() => {
-    join(room);
-    return () => leave();
-  }, []);
-
-  /** Notify others in the room when our user changes */
-  useEffect(() => {
-    track();
-  }, [user]);
 
   return (
     <Stack spacing={2}>
