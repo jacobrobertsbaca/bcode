@@ -9,6 +9,7 @@ import { DeleteDialog } from "@/components/DeleteDialog";
 import createClient from "@/provider/client";
 import { useRoomState } from "@/state/room";
 import { useRouter } from "next-nprogress-bar";
+import { revalidateRooms } from "@/provider/revalidate";
 
 export default function ShowMore({ room }: { room: Room }) {
   const [editing, setEditing] = React.useState(false);
@@ -64,7 +65,9 @@ export default function ShowMore({ room }: { room: Room }) {
             supabase.from("rooms").delete().eq("code", room.code).throwOnError(),
             supabase.from("diffs").delete().like("channel", `${room.code}%`).throwOnError(),
             updatePeers(null),
+            revalidateRooms(), // Refresh /rooms since we're deleting a room
           ]);
+
           router.replace("/rooms");
         }}
       />

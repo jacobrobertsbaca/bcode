@@ -13,6 +13,7 @@ import createClient from "@/provider/client";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "next-nprogress-bar";
 import { useRoomState } from "@/state/room";
+import { revalidateRooms } from "@/provider/revalidate";
 
 type RoomSidebarProps = {
   room: Room;
@@ -74,6 +75,8 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
               return actions.setSubmitting(false);
             }
 
+            /* Mark rooms page as needing a refresh since we've updated it */
+            await revalidateRooms();
             if (exists) {
               router.refresh();
               setOpen(false);

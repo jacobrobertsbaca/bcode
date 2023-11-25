@@ -5,9 +5,8 @@ import { getRooms } from "@/types/Room";
 import RoomRow from "./RoomRow";
 import { Metadata } from "next";
 
-export const revalidate = 0;
 export const metadata: Metadata = {
-  title: "Rooms"
+  title: "Rooms",
 };
 
 export default async function RoomsLayout() {
@@ -41,7 +40,7 @@ export default async function RoomsLayout() {
         </TableHead>
         <TableBody>
           {rooms.map((r) => (
-            <RoomRow room={r} />
+            <RoomRow room={r} key={r.code} />
           ))}
           {rooms.length === 0 && (
             <TableRow>

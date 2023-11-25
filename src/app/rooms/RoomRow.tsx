@@ -21,7 +21,7 @@ type RoomRowProps = {
 export default function RoomRow({ room }: RoomRowProps) {
   const router = useRouter();
   return (
-    <TableRow hover key={room.code} onClick={() => router.push(`/rooms/${room.code}`)} sx={{ cursor: "pointer" }}>
+    <TableRow hover onClick={() => router.push(`/rooms/${room.code}`)} sx={{ cursor: "pointer" }}>
       <TableCell>{room.name}</TableCell>
       <TableCell>
         <Typography variant="inherit" fontFamily={courier.style.fontFamily}>
