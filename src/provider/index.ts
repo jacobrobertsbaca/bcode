@@ -44,7 +44,7 @@ export type SupabaseProviderConfig = {
 
   /**
    * How often the provider should do a complete resync with peers. Set to 0 or `false` to disable.
-   * Default is 5000ms.
+   * Defaults to 5000ms.
    */
   resyncInterval?: number | false;
 
@@ -55,18 +55,6 @@ export type SupabaseProviderConfig = {
 };
 
 export enum SupabaseProviderEvents {
-  /**
-   * Fired when a peer document update has arrived
-   * @param update {@link Uint8Array} A YJS document update
-   */
-  Message = "message",
-
-  /**
-   * Fired when a peer awareness update has arrived
-   * @param update {@link Uint8Array} A YJS awareness update
-   */
-  Awareness = "awareness",
-
   /**
    * Fired when the provider status changes.
    * @param provider {@link SupabaseProvider} This provider
@@ -104,11 +92,11 @@ export class SupabaseProvider extends EventEmitter {
     this.awareness = new AwarenessProtocol.Awareness(doc);
 
     /* Set up resyncInterval */
-    if (this.config.resyncInterval || typeof this.config.resyncInterval === "undefined") {
+    if (this.resyncInterval > 0) {
       this.resync = setInterval(() => {
-        const update = Y.encodeStateAsUpdateV2(this.doc);
-        this.emit(SupabaseProviderEvents.Message, update);
-      }, this.config.resyncInterval || DefaultResyncMs);
+        const update = Y.encodeStateAsUpdate(this.doc);
+        this.sendDocumentUpdate(update);
+      }, this.resyncInterval);
     }
 
     /* Setup debounced save function */
@@ -124,9 +112,6 @@ export class SupabaseProvider extends EventEmitter {
       process.on("exit", this.onUnloadBound);
     }
 
-    this.on(SupabaseProviderEvents.Message, this.onMessage);
-    this.on(SupabaseProviderEvents.Awareness, this.onAwareness);
-
     /* Bind to document/awareness callbacks */
     this.onDocumentUpdateBound = this.onDocumentUpdate.bind(this);
     this.onAwarenessUpdateBound = this.onAwarenessUpdate.bind(this);
@@ -141,14 +126,10 @@ export class SupabaseProvider extends EventEmitter {
     this.channel = this.supabase.channel(this.config.channel);
     this.channel
       .on("broadcast", { event: ChannelEvents.Message }, ({ payload }) => {
-        try {
-          Y.applyUpdate(this.doc, Uint8Array.from(payload), this);
-        } catch (err: any) {
-          this.logger(err);
-        }
+        this.receiveDocumentUpdate(Uint8Array.from(payload));
       })
       .on("broadcast", { event: ChannelEvents.Awareness }, ({ payload }) => {
-        AwarenessProtocol.applyAwarenessUpdate(this.awareness, Uint8Array.from(payload), this);
+        this.receiveAwarenessUpdate(Uint8Array.from(payload));
       })
       .subscribe((status, err) => {
         switch (status) {
@@ -183,10 +164,14 @@ export class SupabaseProvider extends EventEmitter {
   private onDocumentUpdateBound: typeof this.onDocumentUpdate;
   private onAwarenessUpdateBound: typeof this.onAwarenessUpdate;
 
+  private get resyncInterval(): number {
+    if (this.config.resyncInterval === undefined) return DefaultResyncMs;
+    return this.config.resyncInterval || 0;
+  }
+
   private async destroyInternal(status: ConnectionStatus, error?: any) {
     /* Don't run destruction logic if already destroyed */
-    if (this.status === ConnectionStatus.Disconnected || this.status === ConnectionStatus.DisconnectedError)
-      return;
+    if (this.status === ConnectionStatus.Disconnected || this.status === ConnectionStatus.DisconnectedError) return;
     this._status = ConnectionStatus.Disconnected;
 
     this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
@@ -285,7 +270,11 @@ export class SupabaseProvider extends EventEmitter {
     this.previous = Y.encodeStateVector(this.doc);
   }
 
-  private onMessage(message: Uint8Array) {
+  /**
+   * Sends a document update message to peers.
+   * @param message A YJS document update
+   */
+  private sendDocumentUpdate(message: Uint8Array) {
     if (this.status === ConnectionStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",
@@ -294,7 +283,11 @@ export class SupabaseProvider extends EventEmitter {
       });
   }
 
-  private onAwareness(message: Uint8Array) {
+  /**
+   * Sends an awareness update message to peers.
+   * @param message A YJS awareness update
+   */
+  private sendAwarenessUpdate(message: Uint8Array) {
     if (this.status === ConnectionStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",
@@ -303,9 +296,31 @@ export class SupabaseProvider extends EventEmitter {
       });
   }
 
+  /**
+   * Receives a document update message from peers and updates the local document state.
+   * @param message A YJS document update
+   */
+  private receiveDocumentUpdate(message: Uint8Array) {
+    try {
+      Y.applyUpdate(this.doc, message, this);
+    } catch (err: any) {
+      this.logger("Error receiving document update", err);
+      this.destroyInternal(ConnectionStatus.DisconnectedError, err);
+      return;
+    }
+  }
+
+  /**
+   * Receives an awareness update message from peers and updates the local awareness state.
+   * @param message A YJS awareness update.
+   */
+  private receiveAwarenessUpdate(message: Uint8Array) {
+    AwarenessProtocol.applyAwarenessUpdate(this.awareness, message, this);
+  }
+
   private onDocumentUpdate(update: Uint8Array, origin: any) {
     if (origin === this) return;
-    this.emit(SupabaseProviderEvents.Message, update);
+    this.sendDocumentUpdate(update);
     this.saveDocumentDebounced();
   }
 
@@ -313,7 +328,7 @@ export class SupabaseProvider extends EventEmitter {
     if (origin === this) return;
     const changedClients = added.concat(updated).concat(removed);
     const awarenessUpdate = AwarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients);
-    this.emit(SupabaseProviderEvents.Awareness, awarenessUpdate);
+    this.sendAwarenessUpdate(awarenessUpdate);
   }
 
   private onUnload() {

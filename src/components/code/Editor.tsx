@@ -23,7 +23,7 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
     name: user.name,
     color: user.color,
-    colorLight: alpha(user.color, 0.2)
+    colorLight: alpha(user.color, 0.2),
   });
 }
 
@@ -105,6 +105,7 @@ export default function Editor({ group, action }: EditorProps) {
       <Box
         id={editorId}
         sx={{
+          ".cm-content": { paddingTop: "22px" },
           ".cm-content, .cm-gutter": { minHeight: "400px" },
           ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
           ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily },
