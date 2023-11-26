@@ -5,7 +5,7 @@ import Editor from "@/components/code/Editor";
 import EditorFrame from "@/components/code/EditorFrame";
 import EditorOnline from "@/components/code/EditorOnline";
 import { OverlayAlert, OverlayBlur } from "@/components/code/EditorOverlay";
-import { useRoom, useRoomState } from "@/state/room";
+import { RoomState, useRoom, useRoomState } from "@/state/room";
 import { useUserState } from "@/state/user";
 import { Room } from "@/types/Room";
 import { ArrowRightRounded, DoorBackOutlined } from "@mui/icons-material";
@@ -29,6 +29,43 @@ import { useState } from "react";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ConnectionStatus } from "@/types/Connection";
+import { random } from "lodash";
+
+/**
+ * Available colors for guests to use.
+ * Taken from: http://medialab.github.io/iwanthue/
+ * using options to improve visibility/distinctness for colorblind users.
+ *
+ * Hue: 0-360
+ * Chroma: 50-80
+ * Luminance: 30-70
+ */
+const guestColors = [
+  "#bb57b9",
+  "#659a2f",
+  "#966ae6",
+  "#309f5b",
+  "#6548af",
+  "#c38726",
+  "#6183e1",
+  "#d35823",
+  "#c9448a",
+  "#b14c30",
+  "#d14261",
+  "#da4844",
+];
+
+function getNextColor(users: RoomState["users"]): string {
+  const usedColors = Object.values(users ?? {})
+    .flatMap((u) => u)
+    .map((u) => u.color);
+  const colorFreq: Record<string, number> = {};
+  guestColors.forEach((c) => (colorFreq[c] = 0));
+  usedColors.forEach((c) => c in colorFreq && colorFreq[c]++);
+  const minFreq = Math.min(...Object.values(colorFreq));
+  const minUsed = [...Object.entries(colorFreq)].filter((e) => e[1] === minFreq).map((e) => e[0]);
+  return minUsed[random(0, minUsed.length - 1)];
+}
 
 enum GuestViewStatus {
   Name = "name",
@@ -40,7 +77,8 @@ type ChooseNameViewProps = {
 };
 
 function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
-  const updateUser = useUserState((state) => state.updateUser);
+  const userState = useUserState();
+  const users = useRoomState((state) => state.users);
 
   return (
     <Formik
@@ -53,8 +91,9 @@ function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
         })
       )}
       onSubmit={(values) => {
-        updateUser({
+        userState.updateUser({
           name: values.name,
+          color: getNextColor(users),
           isHost: false,
           group: 0,
         });

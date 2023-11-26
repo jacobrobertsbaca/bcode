@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, CardHeader, Stack } from "@mui/material";
+import { Box, CardHeader, Stack, alpha } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { jakarta } from "../ThemeRegistry/fonts";
 import createClient from "@/provider/client";
@@ -23,7 +23,7 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
     name: user.name,
     color: user.color,
-    colorLight: user.lightColor,
+    colorLight: alpha(user.color, 0.2)
   });
 }
 

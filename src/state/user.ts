@@ -1,5 +1,4 @@
 import { v4 } from "uuid";
-import { random } from "lodash";
 import { create } from "zustand";
 
 /**
@@ -25,11 +24,6 @@ export interface LiveUser {
    * The hexadecimal color of this user.
    */
   color: string;
-
-  /**
-   * The hexadecimal light color of this user.
-   */
-  lightColor: string;
 
   /**
    * The group that this user belongs to.
