@@ -2,13 +2,10 @@
 
 import createClient from "@/provider/client";
 import { Button } from "@mui/material";
-import { useRouter } from "next-nprogress-bar";
 import { enqueueSnackbar } from "notistack";
-import Image from "next/image";
+import GithubIcon from "./icons/GithubIcon";
 
 export default function SignInButton() {
-  const router = useRouter();
-
   function getRedirectURL() {
     let url = window.location.origin;
     // Make sure to include `http://` to match Supabase redirect allow list
@@ -32,7 +29,7 @@ export default function SignInButton() {
     <Button
       variant="text"
       fullWidth
-      startIcon={<Image alt="GitHub Logo" width={20} height={20} src="/github.svg" />}
+      startIcon={<GithubIcon />}
       onClick={signIn}
     >
       Continue with GitHub
