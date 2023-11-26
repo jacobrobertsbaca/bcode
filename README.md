@@ -1,16 +1,9 @@
 # `bcode`
 
-### November 22 Goals
+`bcode` is a tool that enables Stanford CS106B section leaders to create collaborative small group problems during section. Hosts create **rooms** with one or more **groups** that students can join to collaboratively write code during section. Think of it like breakout rooms for code.
 
-- Code editor states:
-  - Waiting for host (controlled)
-  - Loading (uncontrolled)
-  - Disconnected (uncontrolled)
-  - Host closed (controlled)
-- Room channel & presence
-- Host UI
-  - View all group code
-  - View all users per group and waiting room
-    - Show users using horizontal stack of avatars?
-  - Ideate on best UI to assign users to groups
-    - Allow users to move between groups?
+To start using `bcode` for your section, [sign in through GitHub ](https://106b.vercel.app) and create a room! Once a room is created, you'll be able to share the link and QR code with your sectionees.
+
+## Hosting
+
+See the [hosting guide](./HOSTING.md) to host the app yourself.

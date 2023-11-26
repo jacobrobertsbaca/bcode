@@ -1,0 +1,91 @@
+# Hosting
+
+`bcode` runs on a combination of [Supabase](https://supabase.com) and [Vercel](https://vercel.com). To run through your own Supabase organization, you'll need to set up a Supabase project for the app. To deploy to the web, you can host the app on Vercel. Instructions for configuring both of these are given below.
+
+## Supabase
+
+To get started, create a Supabase project with the following configuration.
+
+### Tables
+
+The following Postgres tables are required to run. You can create these by running the queries below in the Supabase query editor.
+
+```sql
+create table diffs (
+  id bigserial primary key,
+  channel text not null,
+  diff jsonb not null
+);
+
+create view diffsview as (
+  select
+    diffs.channel,
+    json_agg(diffs.diff) as diffs
+  from (
+    select channel, diff
+    from diffs
+    order by id desc
+  ) diffs
+  group by channel
+);
+
+create table rooms (
+  code text primary key,
+  name text not null,
+  groups json not null,
+  created timestamp not null
+);
+```
+
+### Auth
+
+You must enable Github as an auth provider within Supabase to allow users to log in. You can do this by following the Supabase guide for setting up Github OAuth, which explains the steps required to register an OAuth application with Github.
+
+It is also recommended to disable the default email provider inside Supabase, as the app does not make use of email sign in.
+
+### Environment Variables
+
+In the root directory of this project, create a `.env.local` file with the following content, replacing items in brackets with your project's Supabase URL/key.
+
+```s
+NEXT_PUBLIC_SUPABASE_URL=[Supabase URL]
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[Supabase Anonymous Key]
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL_SHORT=localhost:3000
+```
+
+|Variable|Meaning|
+|----|----|
+`NEXT_PUBLIC_SUPABASE_URL` | The Supabase project's URL (see dashboard)
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key shown (see dashboard)
+`NEXT_PUBLIC_SITE_URL` | The website URL (no trailing slashes). Used to generate QR code links.
+`NEXT_PUBLIC_SITE_URL_SHORT` | The short form version of the website URL. Used to generate help messages and shown links.
+
+### Running Locally
+
+After following the steps above, you can run
+
+```sh
+npm run dev
+```
+
+to host the app locally at http://localhost:3000.
+
+
+## Vercel
+
+You can deploy the app to the web using Vercel. To do so, create a new Vercel project linked to your Github repo containing the project code. Once you have a public domain (e.g. something.vercel.app), follow the configuration steps below.
+
+### Supabase Auth
+
+You'll need to change your project's URL configuration in Supabase to match your public Vercel domain. On the URL configuration page, change the Site URL to your public domain and ensure the following URLs are allowed as redirect URLs:
+
+- `https://{Your Domain}/auth/callback` — For users visiting your public domain
+- `https://*-{Your Vercel Org}.vercel.app/auth/callback` — For Vercel preview deployments
+- `http://localhost:3000/auth/callback` — For local development
+
+You can add additional redirect URLs here depending on your deployment setup.
+
+### Environment Variables
+
+Update your local `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_SITE_URL_SHORT` variables in `.env.local` to match your public domain. Then, add these variables **to your Vercel configuration settings** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!
