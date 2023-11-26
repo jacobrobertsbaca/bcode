@@ -34,26 +34,8 @@ import { random } from "lodash";
 /**
  * Available colors for guests to use.
  * Taken from: http://medialab.github.io/iwanthue/
- * using options to improve visibility/distinctness for colorblind users.
- *
- * Hue: 0-360
- * Chroma: 50-80
- * Luminance: 30-70
  */
-const guestColors = [
-  "#bb57b9",
-  "#659a2f",
-  "#966ae6",
-  "#309f5b",
-  "#6548af",
-  "#c38726",
-  "#6183e1",
-  "#d35823",
-  "#c9448a",
-  "#b14c30",
-  "#d14261",
-  "#da4844",
-];
+const guestColors = ["#ca5070", "#57aa60", "#bf55ba", "#a29940", "#6b68cd", "#ca6b3d", "#49a5cf", "#ab7ebb"];
 
 function getNextColor(users: RoomState["users"]): string {
   const usedColors = Object.values(users ?? {})
