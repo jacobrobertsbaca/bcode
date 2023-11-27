@@ -8,6 +8,7 @@ import { Box, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from
 import { useFormikContext } from "formik";
 import { debounce } from "lodash";
 import { useEffect, useMemo, useState } from "react";
+import { minifyURL } from "../util";
 
 function maskCodeInput(code: string): string {
   return code
@@ -80,7 +81,7 @@ export default function RoomSidebarInput() {
               <Typography variant="inherit" component="li">
                 For example, they link they'll connect to will look like{" "}
                 <Typography display="inline" variant="inherit" fontWeight={600}>
-                  {process.env.NEXT_PUBLIC_SITE_URL_SHORT}/{formik.values.code.toLocaleLowerCase() || "my-code"}
+                  {minifyURL(process.env.NEXT_PUBLIC_SITE_URL!)}/{formik.values.code.toLocaleLowerCase() || "my-code"}
                 </Typography>
                 .
               </Typography>
@@ -135,7 +136,7 @@ export default function RoomSidebarInput() {
             max={8}
             marks
             value={formik.values.groups.length}
-            onChange={(_, v) => formik.setFieldValue("groups", groupsForCount(v as number))}  
+            onChange={(_, v) => formik.setFieldValue("groups", groupsForCount(v as number))}
           />
         </Box>
       </Tooltip>

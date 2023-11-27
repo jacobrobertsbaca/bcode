@@ -12,6 +12,7 @@ import SquaresIcon from "@heroicons/react/24/outline/Squares2X2Icon";
 import { enqueueSnackbar } from "notistack";
 import { Canvg } from "canvg";
 import Navigation from "@/components/Navigation";
+import { minifyURL } from "@/app/util";
 
 const kQRCodeId = "qr-code";
 
@@ -92,7 +93,7 @@ export default function RoomCode({ room }: { room: Room }) {
             color="background.contrast"
             sx={{ wordWrap: "anywhere" }}
           >
-            {process.env.NEXT_PUBLIC_SITE_URL_SHORT}/{room.code}
+            {minifyURL(process.env.NEXT_PUBLIC_SITE_URL!)}/{room.code}
           </Typography>
           <EditorOnline />
         </Stack>

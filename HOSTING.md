@@ -51,7 +51,6 @@ In the root directory of this project, create a `.env.local` file with the follo
 NEXT_PUBLIC_SUPABASE_URL=[Supabase URL]
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[Supabase Anonymous Key]
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL_SHORT=localhost:3000
 ```
 
 |Variable|Meaning|
@@ -59,7 +58,6 @@ NEXT_PUBLIC_SITE_URL_SHORT=localhost:3000
 `NEXT_PUBLIC_SUPABASE_URL` | The Supabase project's URL (see dashboard)
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key shown (see dashboard)
 `NEXT_PUBLIC_SITE_URL` | The website URL (no trailing slashes). Used to generate QR code links.
-`NEXT_PUBLIC_SITE_URL_SHORT` | The short form version of the website URL. Used to generate help messages and shown links.
 
 ### Running Locally
 
@@ -88,4 +86,4 @@ You can add additional redirect URLs here depending on your deployment setup.
 
 ### Environment Variables
 
-Update your local `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_SITE_URL_SHORT` variables in `.env.local` to match your public domain. Then, add these variables **to your Vercel configuration settings** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!
+Update your local `NEXT_PUBLIC_SITE_URL` variable in `.env.local` to match your public domain. Then, add these variables **to your Vercel configuration settings** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!
