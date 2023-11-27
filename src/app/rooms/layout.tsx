@@ -17,7 +17,7 @@ export default async function RoomsLayout({ children }: { children: React.ReactN
 
   return (
     <Box>
-      <Navigation />
+      <Navigation nav />
       {children}
     </Box>
   );

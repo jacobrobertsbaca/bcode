@@ -1,35 +1,63 @@
-import { createTheme } from '@mui/material/styles';
-import { jakarta } from './fonts';
+import { PaletteOptions, createTheme as createMuiTheme } from "@mui/material/styles";
+import { jakarta } from "./fonts";
 
-declare module '@mui/material/styles' {
+declare module "@mui/material/styles" {
   interface Palette {
-    editor: Palette['primary'];
+    editor: Palette["primary"];
   }
 
   interface PaletteOptions {
-    editor?: PaletteOptions['primary'];
+    editor?: PaletteOptions["primary"];
+  }
+
+  interface TypeBackground {
+    contrast: string;
   }
 }
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: { main: "rgba(0, 0, 0, 0.6)" },
-    text: {
-      primary: "rgba(0, 0, 0, 0.6)",
-      secondary: "rgba(0, 0, 0, 0.26)"
+export default function createTheme(mode: "light" | "dark") {
+  const theme = createMuiTheme({
+    palette: {
+      mode,
+      ...(mode === "light"
+        ? {
+            primary: { main: "rgba(0, 0, 0, 0.6)" },
+            text: {
+              primary: "rgba(0, 0, 0, 0.6)",
+              secondary: "rgba(0, 0, 0, 0.26)",
+            },
+            editor: { main: "#fcfcfc" },
+            background: { contrast: "#000" },
+          }
+        : {
+            primary: { main: "rgba(255, 255, 255, 0.8)" },
+            text: {
+              primary: "rgba(255, 255, 255, 0.8)",
+              secondary: "rgba(255, 255, 255, 0.46)",
+            },
+            editor: { main: "#141414" },
+            background: { contrast: "#fff" },
+          }),
     },
-    editor: { main: "#fcfcfc" }
-  },
-  typography: {
-    fontFamily: jakarta.style.fontFamily,
-  },
-  components: {
+    typography: {
+      fontFamily: jakarta.style.fontFamily,
+    },
+  });
+
+  theme.components = {
+    ...theme.components,
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "unset",
+        },
+      },
+    },
     MuiAlert: {
       styleOverrides: {
         root: ({ ownerState }) => ({
-          ...(ownerState.severity === 'info' && {
-            backgroundColor: '#60a5fa',
+          ...(ownerState.severity === "info" && {
+            backgroundColor: "#60a5fa",
           }),
         }),
       },
@@ -37,9 +65,9 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: "none"
-        }
-      }
+          textTransform: "none",
+        },
+      },
     },
     MuiOutlinedInput: {
       styleOverrides: {
@@ -48,55 +76,59 @@ const theme = createTheme({
           borderRadius: "10px",
           ["&.Mui-focused"]: {
             ["& .MuiOutlinedInput-notchedOutline"]: {
-              borderWidth: 1
-            }
-          }
-        }
-      }
+              borderWidth: 1,
+            },
+          },
+        },
+      },
     },
     MuiTableCell: {
       styleOverrides: {
+        root: {
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        },
         head: {
-          fontWeight: 500
-        }
-      }
+          fontWeight: 500,
+        },
+      },
     },
     MuiButtonBase: {
       styleOverrides: {
         root: {
-          borderRadius: "10px !important"
-        }
+          borderRadius: "10px !important",
+        },
       },
     },
     MuiMenuItem: {
       styleOverrides: {
         root: {
-          borderRadius: "0px !important"
-        }
-      }
+          borderRadius: "0px !important",
+        },
+      },
     },
     MuiSlider: {
       styleOverrides: {
         thumb: {
-          color: "rgba(80, 80, 80, 1)"
-        }
-      }
+          color: theme.palette.background.contrast,
+        },
+      },
     },
     MuiAvatar: {
       styleOverrides: {
         root: {
-          fontSize: "1rem"
-        }
-      }
+          fontSize: "1rem",
+          color: theme.palette.text.primary
+        },
+      },
     },
     MuiDialog: {
       styleOverrides: {
         paper: {
-          borderRadius: "10px"
-        }
-      }
-    }
-  },
-});
+          borderRadius: "10px",
+        },
+      },
+    },
+  };
 
-export default theme;
+  return theme;
+}

@@ -47,7 +47,7 @@ export default async function HostRoomPage({ params }: { params: { room: string 
               href={`/${room.code}`}
               target="_blank"
               variant="contained"
-              sx={{ backgroundColor: "black" }}
+              sx={{ backgroundColor: "background.contrast" }}
               disableElevation
             >
               Visit
