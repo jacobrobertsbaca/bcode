@@ -117,7 +117,7 @@ export default function createTheme(mode: "light" | "dark") {
       styleOverrides: {
         root: {
           fontSize: "1rem",
-          color: theme.palette.text.primary
+          color: "white"
         },
       },
     },

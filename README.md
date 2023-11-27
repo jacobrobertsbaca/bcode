@@ -1,3 +1,5 @@
+![A image showcasing what a student sees when they join a group](doc/demo.png)
+
 # `bcode`
 
 `bcode` is a tool that enables Stanford CS106B section leaders to create collaborative small group problems during section. Hosts create **rooms** with one or more **groups** that students can join to collaboratively write code during section. Think of it like breakout rooms for code.
