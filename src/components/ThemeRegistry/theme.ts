@@ -1,4 +1,4 @@
-import { createTheme as createMuiTheme } from "@mui/material/styles";
+import { PaletteOptions, createTheme as createMuiTheme } from "@mui/material/styles";
 import { jakarta } from "./fonts";
 
 declare module "@mui/material/styles" {
@@ -16,7 +16,7 @@ declare module "@mui/material/styles" {
 }
 
 export default function createTheme(mode: "light" | "dark") {
-  return createMuiTheme({
+  const theme = createMuiTheme({
     palette: {
       mode,
       ...(mode === "light"
@@ -35,85 +35,100 @@ export default function createTheme(mode: "light" | "dark") {
               primary: "rgba(255, 255, 255, 0.8)",
               secondary: "rgba(255, 255, 255, 0.46)",
             },
-            editor: { main: "#fcfcfc" },
+            editor: { main: "#141414" },
             background: { contrast: "#fff" },
           }),
     },
     typography: {
       fontFamily: jakarta.style.fontFamily,
     },
-    components: {
-      MuiAlert: {
-        styleOverrides: {
-          root: ({ ownerState }) => ({
-            ...(ownerState.severity === "info" && {
-              backgroundColor: "#60a5fa",
-            }),
+  });
+
+  theme.components = {
+    ...theme.components,
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "unset",
+        },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: ({ ownerState }) => ({
+          ...(ownerState.severity === "info" && {
+            backgroundColor: "#60a5fa",
           }),
+        }),
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
         },
       },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: "none",
-          },
-        },
-      },
-      MuiOutlinedInput: {
-        styleOverrides: {
-          root: {
-            boxShadow: "0 2px 6px rgba(0,0,0,.05)",
-            borderRadius: "10px",
-            ["&.Mui-focused"]: {
-              ["& .MuiOutlinedInput-notchedOutline"]: {
-                borderWidth: 1,
-              },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          boxShadow: "0 2px 6px rgba(0,0,0,.05)",
+          borderRadius: "10px",
+          ["&.Mui-focused"]: {
+            ["& .MuiOutlinedInput-notchedOutline"]: {
+              borderWidth: 1,
             },
           },
         },
       },
-      MuiTableCell: {
-        styleOverrides: {
-          head: {
-            fontWeight: 500,
-          },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: `1px solid ${theme.palette.divider}`,
         },
-      },
-      MuiButtonBase: {
-        styleOverrides: {
-          root: {
-            borderRadius: "10px !important",
-          },
-        },
-      },
-      MuiMenuItem: {
-        styleOverrides: {
-          root: {
-            borderRadius: "0px !important",
-          },
-        },
-      },
-      MuiSlider: {
-        styleOverrides: {
-          thumb: {
-            color: "rgba(80, 80, 80, 1)",
-          },
-        },
-      },
-      MuiAvatar: {
-        styleOverrides: {
-          root: {
-            fontSize: "1rem",
-          },
-        },
-      },
-      MuiDialog: {
-        styleOverrides: {
-          paper: {
-            borderRadius: "10px",
-          },
+        head: {
+          fontWeight: 500,
         },
       },
     },
-  });
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          borderRadius: "10px !important",
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          borderRadius: "0px !important",
+        },
+      },
+    },
+    MuiSlider: {
+      styleOverrides: {
+        thumb: {
+          color: theme.palette.background.contrast,
+        },
+      },
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          fontSize: "1rem",
+          color: theme.palette.text.primary
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: "10px",
+        },
+      },
+    },
+  };
+
+  return theme;
 }

@@ -6,7 +6,7 @@ export default function EditorFrame({ sx, ...rest }: CardProps) {
   return (
     <Card
       sx={{
-        border: "1px solid #0001",
+        border: (theme) => `1px solid ${theme.palette.divider}`,
         backgroundColor: (theme) => theme.palette.editor.main,
         position: "relative",
         minHeight: "400px",

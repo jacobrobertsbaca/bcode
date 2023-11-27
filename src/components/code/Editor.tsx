@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, CardHeader, Stack, alpha } from "@mui/material";
+import { Box, CardHeader, Stack, alpha, useTheme } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { jakarta } from "../ThemeRegistry/fonts";
 import createClient from "@/provider/client";
@@ -10,14 +10,17 @@ import { useRoomState } from "@/state/room";
 import { EditorView, basicSetup } from "codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { yCollab } from "y-codemirror.next";
-import { ayuLight } from "thememirror";
 import EditorFrame from "./EditorFrame";
 import { ConnectionStatus } from "@/types/Connection";
 import EditorOverlay from "./EditorOverlay";
 import { LiveUser, useUserState } from "@/state/user";
 import EditorOnline from "./EditorOnline";
+import { Compartment } from "@codemirror/state";
+import { light } from "./theme/light";
+import { dark } from "./theme/dark";
 
 const kEditorViewId = "code-view";
+const EditorTheme = new Compartment();
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
@@ -40,8 +43,13 @@ export default function Editor({ group, action }: EditorProps) {
   /** Editor state */
   const user = useUserState((state) => state.user);
   const provider = useRef<SupabaseProvider>();
+  const editorView = useRef<EditorView>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
   const editorId = `${kEditorViewId}-${group}`;
+
+  /* Theme */
+  const theme = useTheme();
+  const editorTheme = theme.palette.mode === "light" ? light : dark;
 
   /* Setup code editor on mount */
   useEffect(() => {
@@ -70,8 +78,13 @@ export default function Editor({ group, action }: EditorProps) {
       if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
     });
 
-    new EditorView({
-      extensions: [basicSetup, cpp(), ayuLight, yCollab(ytext, provider.current.awareness, { undoManager })],
+    editorView.current = new EditorView({
+      extensions: [
+        basicSetup,
+        cpp(),
+        EditorTheme.of(editorTheme),
+        yCollab(ytext, provider.current.awareness, { undoManager }),
+      ],
       parent: parentElem,
     });
 
@@ -86,6 +99,14 @@ export default function Editor({ group, action }: EditorProps) {
     if (provider.current.status !== ConnectionStatus.Connected) return;
     updateProviderUser(provider.current, user);
   }, [user]);
+
+  /* Update the editor theme when the MUI theme changes */
+  useEffect(() => {
+    if (!editorView.current) return;
+    editorView.current.dispatch({
+      effects: EditorTheme.reconfigure(editorTheme),
+    });
+  }, [theme.palette.mode]);
 
   return (
     <EditorFrame>
@@ -107,6 +128,7 @@ export default function Editor({ group, action }: EditorProps) {
         sx={{
           ".cm-content": { paddingTop: "22px" },
           ".cm-content, .cm-gutter": { minHeight: "400px" },
+          ".cm-gutters": { borderRight: `1px solid ${theme.palette.divider}` },
           ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
           ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily },
           ".cm-focused": { outline: "none" },

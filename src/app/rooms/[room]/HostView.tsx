@@ -15,7 +15,7 @@ export default function HostView({ room }: { room: Room }) {
   const updateUser = useUserState((state) => state.updateUser);
   useRoom(room, true);
   useEffect(() => {
-    updateUser({ isHost: true, name: "Host", color: "#000000" });
+    updateUser({ isHost: true, name: "Host", color: "#515151" });
   }, []);
 
   return (

@@ -17,6 +17,7 @@ import {
   InputAdornment,
   Stack,
   SvgIcon,
+  SxProps,
   Table,
   TableBody,
   TableCell,
@@ -124,21 +125,26 @@ function ChooseGroupView() {
       </EditorFrame>
     );
 
+  function cellSx(index: number): SxProps {
+    if (index !== room!.groups.length - 1) return {};
+    return { borderBottom: "unset" };
+  }
+
   return (
     <EditorFrame sx={{ minHeight: "unset" }}>
       <Table sx={{ width: 1 }}>
         <TableBody>
-          {room.groups.map((group) => (
+          {room.groups.map((group, index) => (
             <TableRow key={group.no} sx={{ height: 75 }}>
-              <TableCell>{group.name}</TableCell>
-              <TableCell>
+              <TableCell sx={cellSx(index)}>{group.name}</TableCell>
+              <TableCell sx={cellSx(index)}>
                 <Stack direction="row" alignContent="center" justifyContent="end" spacing={2}>
                   <EditorOnline group={group.no} alignItems="center" />
                   <Box>
                     <Button
                       onClick={() => updateUser({ group: group.no })}
                       variant="contained"
-                      sx={{ backgroundColor: "black" }}
+                      sx={{ backgroundColor: "background.contrast" }}
                       disableElevation
                     >
                       Join

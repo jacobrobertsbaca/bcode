@@ -11,14 +11,32 @@ import { useMediaQuery } from "@mui/material";
 
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
 
+type ColorMode = "light" | "dark";
+const kColorModeStorageKey = "ThemeRegistry-PreferredColorMode";
+
+function defaultColorMode(prefersDarkModeSystem: boolean): ColorMode {
+  const prefersDarkModeStored = localStorage.getItem(kColorModeStorageKey);
+  if (prefersDarkModeStored) {
+    if (prefersDarkModeStored === "light" || prefersDarkModeStored === "dark")
+      return prefersDarkModeStored;
+  }
+
+  return prefersDarkModeSystem ? "dark" : "light";
+}
+
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-  const [mode, setMode] = React.useState<"light" | "dark">(prefersDarkMode ? "dark" : "light");
+  const prefersDarkModeSystem = useMediaQuery("(prefers-color-scheme: dark)");
+  const [mode, setMode] = React.useState<ColorMode>(defaultColorMode(prefersDarkModeSystem));
+  
   const theme = createTheme(mode);
   const colorMode = React.useMemo(
     () => ({
       toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+        setMode((prevMode) => {
+          const newMode = prevMode === "light" ? "dark" : "light";
+          localStorage.setItem(kColorModeStorageKey, newMode);
+          return newMode;
+        });
       },
     }),
     []
