@@ -5,9 +5,9 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import NextAppDirEmotionCacheProvider from "./EmotionCache";
 import { SnackbarProvider } from "notistack";
-import { AppProgressBar } from "next-nprogress-bar";
 import createTheme from "./theme";
 import { useMediaQuery } from "@mui/material";
+import { AppProgressBar } from "../navigation/AppProgressBar";
 
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
 
@@ -17,8 +17,7 @@ const kColorModeStorageKey = "ThemeRegistry-PreferredColorMode";
 function defaultColorMode(prefersDarkModeSystem: boolean): ColorMode {
   const prefersDarkModeStored = localStorage.getItem(kColorModeStorageKey);
   if (prefersDarkModeStored) {
-    if (prefersDarkModeStored === "light" || prefersDarkModeStored === "dark")
-      return prefersDarkModeStored;
+    if (prefersDarkModeStored === "light" || prefersDarkModeStored === "dark") return prefersDarkModeStored;
   }
 
   return prefersDarkModeSystem ? "dark" : "light";
@@ -27,7 +26,7 @@ function defaultColorMode(prefersDarkModeSystem: boolean): ColorMode {
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
   const prefersDarkModeSystem = useMediaQuery("(prefers-color-scheme: dark)");
   const [mode, setMode] = React.useState<ColorMode>(defaultColorMode(prefersDarkModeSystem));
-  
+
   const theme = createTheme(mode);
   const colorMode = React.useMemo(
     () => ({
@@ -51,7 +50,12 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
           <SnackbarProvider />
           {children}
         </ThemeProvider>
-        <AppProgressBar height="4px" color="black" options={{ showSpinner: false }} shallowRouting />
+        <AppProgressBar
+          height="4px"
+          color={theme.palette.background.contrast}
+          options={{ showSpinner: false }}
+          shallowRouting
+        />
       </ColorModeContext.Provider>
     </NextAppDirEmotionCacheProvider>
   );

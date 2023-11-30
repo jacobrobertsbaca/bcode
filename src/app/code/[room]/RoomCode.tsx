@@ -11,7 +11,7 @@ import ClipboardIcon from "@heroicons/react/24/outline/Square2StackIcon";
 import SquaresIcon from "@heroicons/react/24/outline/Squares2X2Icon";
 import { enqueueSnackbar } from "notistack";
 import { Canvg } from "canvg";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/navigation/Navigation";
 import { minifyURL } from "@/app/util";
 
 const kQRCodeId = "qr-code";

@@ -8,7 +8,7 @@ import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
 import createClient from "@/provider/client";
 import { useRoomState } from "@/state/room";
-import { useRouter } from "next-nprogress-bar";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 import { revalidateRooms } from "@/provider/revalidate";
 
 export default function ShowMore({ room }: { room: Room }) {

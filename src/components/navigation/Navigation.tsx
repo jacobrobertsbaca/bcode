@@ -12,7 +12,7 @@ import ListItemText from "@mui/material/ListItemText";
 import React, { useCallback, useContext } from "react";
 import { Box, IconButton, Stack, SvgIcon, useTheme } from "@mui/material";
 
-import Logo from "./Logo";
+import Logo from "../Logo";
 import { DoorBackOutlined, LogoutRounded } from "@mui/icons-material";
 import Link from "next/link";
 import createClient from "@/provider/client";
@@ -21,7 +21,7 @@ import { enqueueSnackbar } from "notistack";
 import MenuIcon from "@heroicons/react/24/solid/Bars3Icon";
 import DarkModeIcon from "@heroicons/react/24/solid/MoonIcon";
 import LightModeIcon from "@heroicons/react/24/solid/SunIcon";
-import { ColorModeContext } from "./ThemeRegistry/ThemeRegistry";
+import { ColorModeContext } from "../ThemeRegistry/ThemeRegistry";
 
 const DrawerWidth = 240;
 const AppBarZ = 1000;

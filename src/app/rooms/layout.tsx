@@ -1,4 +1,4 @@
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/navigation/Navigation";
 import createServer from "@/provider/server";
 import { Box } from "@mui/material";
 import { redirect } from "next/navigation";

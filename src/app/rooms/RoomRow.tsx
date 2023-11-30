@@ -1,9 +1,9 @@
 "use client";
 
 import { courier } from "@/components/ThemeRegistry/fonts";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 import { Room } from "@/types/Room";
 import { TableCell, TableRow, Typography } from "@mui/material";
-import { useRouter } from "next-nprogress-bar";
 
 function formatDateString(iso8601: string) {
   const date = new Date(iso8601);

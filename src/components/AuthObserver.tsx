@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next-nprogress-bar";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 import createClient from "@/provider/client";
 
 /**

@@ -1,5 +1,5 @@
 import Logo from "@/components/Logo";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/navigation/Navigation";
 import SignInButton from "@/components/SignInButton";
 import GithubIcon from "@/components/icons/GithubIcon";
 import { Container, IconButton, Stack, Typography } from "@mui/material";

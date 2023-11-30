@@ -1,4 +1,4 @@
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/navigation/Navigation";
 
 export default function GuestLayout({ children }: { children: React.ReactNode }) {
   return (
