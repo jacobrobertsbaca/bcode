@@ -18,6 +18,8 @@ import EditorOnline from "./EditorOnline";
 import { Compartment } from "@codemirror/state";
 import { light } from "./theme/light";
 import { dark } from "./theme/dark";
+import { keymap } from "@codemirror/view";
+import { indentWithTab } from "@codemirror/commands";
 
 const kEditorViewId = "code-view";
 const EditorTheme = new Compartment();
@@ -81,6 +83,7 @@ export default function Editor({ group, action }: EditorProps) {
     editorView.current = new EditorView({
       extensions: [
         basicSetup,
+        keymap.of([indentWithTab]),
         cpp(),
         EditorTheme.of(editorTheme),
         yCollab(ytext, provider.current.awareness, { undoManager }),
