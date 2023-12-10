@@ -11,7 +11,7 @@ To start using `bcode` for your section, [sign in through GitHub ](https://106b.
 ## Milestones
 
 - [ ] Add stricter authentication checks 🛡️
-- [ ] Add support Python syntax highlighting (for CS106A) 🐍
+- [ ] Add support for Python syntax highlighting (for CS106A) 🐍
 - [ ] Add support for starter code (avoid multiple copy/paste) 📜
 - [ ] Add support for locking rooms 🔒
 
