@@ -8,6 +8,13 @@
 
 To start using `bcode` for your section, [sign in through GitHub ](https://106b.vercel.app) and create a room! Once a room is created, you'll be able to share the link and QR code with your sectionees.
 
+## Milestones
+
+- [ ] Add stricter authentication checks 🛡️
+- [ ] Add support Python syntax highlighting (for CS106A) 🐍
+- [ ] Add support for starter code (avoid multiple copy/paste) 📜
+- [ ] Add support for locking rooms 🔒
+
 ## Hosting
 
 See the [hosting guide](./HOSTING.md) to host the app yourself.
