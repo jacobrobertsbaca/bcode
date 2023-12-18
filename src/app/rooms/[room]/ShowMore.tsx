@@ -6,10 +6,8 @@ import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typograph
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
-import createClient from "@/provider/client";
 import { useRoomState } from "@/state/room";
 import { useRouter } from "@/components/navigation/AppProgressBar";
-import { revalidateRooms } from "@/provider/revalidate";
 import { deleteRoom } from "@/app/actions";
 
 export default function ShowMore({ room }: { room: Room }) {
