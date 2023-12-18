@@ -14,7 +14,7 @@ function maskCodeInput(code: string): string {
   return code
     .toLowerCase()
     .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-_]/g, "")
+    .replace(/[^a-z0-9-]/g, "")
     .substring(0, 30);
 }
 

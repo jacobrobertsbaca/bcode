@@ -15,7 +15,7 @@ export const RoomGroupSchema = z.object({
 
 const CodeSchema = z
   .string()
-  .regex(/^[a-zA-Z0-9_-]+$/, "Only alphanumeric characters and -_")
+  .regex(/^[a-zA-Z0-9-]+$/, "Only alphanumeric characters and hyphens")
   .toLowerCase()
   .min(1, "Can't be empty")
   .max(30, "Can't be more than 30 characters")
