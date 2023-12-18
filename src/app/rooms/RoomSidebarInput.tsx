@@ -6,7 +6,7 @@ import { Room, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
 import { Box, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
-import { debounce } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
 
@@ -145,7 +145,7 @@ export default function RoomSidebarInput() {
         size="large"
         type="submit"
         loading={formik.isSubmitting}
-        disabled={!formik.isValid}
+        disabled={!formik.isValid || isEqual(formik.initialValues, formik.values)}
       >
         <span>Save</span>
       </LoadingButton>

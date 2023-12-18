@@ -13,7 +13,7 @@ import createClient from "@/provider/client";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoomState } from "@/state/room";
-import { revalidateRooms } from "@/provider/revalidate";
+import { upsertRoom } from "../actions";
 
 type RoomSidebarProps = {
   room: Room;
@@ -48,39 +48,19 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
           (async () => {
             actions.setSubmitting(true);
 
-            const owner = (await supabase.auth.getUser()).data?.user?.id;
-            if (!owner) {
-              enqueueSnackbar(`Couldn't get current user. Are you connected?`, { variant: "error" });
-              return actions.setSubmitting(false);
-            }
-
             try {
+              const { error } = await upsertRoom(room);
+              if (error) throw new Error(error.message);
               if (exists) {
-                await Promise.all([
-                  supabase
-                    .from("rooms")
-                    .update({ owner, ...room })
-                    .eq("code", room.code)
-                    .throwOnError(),
-                  updatePeers(room),
-                ]);
+                updatePeers(room);
+                setOpen(false);
               } else {
-                await supabase
-                  .from("rooms")
-                  .insert({ owner, ...room })
-                  .throwOnError();
+                router.push(`/rooms/${room.code}`);
               }
             } catch (error: any) {
-              enqueueSnackbar(`Couldn't save room: ${error?.message}`, { variant: "error" });
+              enqueueSnackbar(`Couldn't save room: ${error?.message}`);
               return actions.setSubmitting(false);
             }
-
-            /* Mark rooms page as needing a refresh since we've updated it */
-            await revalidateRooms();
-            if (exists) {
-              router.refresh();
-              setOpen(false);
-            } else router.push(`/rooms/${room.code}`);
           })();
         }}
       >

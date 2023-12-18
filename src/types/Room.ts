@@ -1,4 +1,4 @@
-import createClient from "@/provider/client";
+import { roomExists } from "@/app/actions";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -33,10 +33,8 @@ export const RoomSchema = z.object({
 
 export const RoomSchemaNew = RoomSchema.extend({
   code: CodeSchema.refine(async (code) => {
-    const supabase = createClient();
-    const { count } = await supabase.from("rooms").select("*", { count: "exact", head: true }).eq("code", code);
-    if (count !== null && count > 0) return false;
-    return true;
+    const { data } = await roomExists(code);
+    return !data;
   }, "There is already a room with this code!"),
 });
 
