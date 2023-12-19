@@ -2,8 +2,8 @@
 
 import createServer from "@/provider/server";
 import { Room, RoomSchema } from "@/types/Room";
-import { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { notFound } from "next/navigation";
 
 function failure(httpCode: number, message: string) {
   return {
@@ -20,6 +20,43 @@ function success<T = string>(result?: T) {
     data: (result ?? "Success") as T,
     error: null,
   };
+}
+
+/**
+ * Gets the rooms owned by the current user.
+ * @param code If defined, returns a single room with the given code. 
+ * If undefined, returns all rooms owned by the current user and must be authorized.
+ * @returns An array of {@link Room} objects.
+ */
+export async function getRooms(code?: string) {
+  try {
+    const supabase = createServer();
+    let query = supabase.from("rooms").select("code, name, groups, created").throwOnError();
+    if (code !== undefined) query = query.eq("code", code);
+    else {
+      /* Get current user */
+      const owner = (await supabase.auth.getUser()).data.user?.id;
+      if (!owner) return failure(401, "Unauthorized");
+      query = query.order("created", { ascending: false }).eq("owner", owner);
+    }
+
+    const { data } = await query;
+    return success(data!.map((d) => ({ ...d, created: new Date(d.created).toISOString() })) as Room[]);
+  } catch (err: any) {
+    return failure(500, err.message);
+  }
+}
+
+/**
+ * Gets a single room by code.
+ * @param code The room code. If no room exists with that code, triggers a 404 response.
+ * @returns The {@link Room} with this code.
+ */
+export async function getRoom(code: string) {
+  const result = await getRooms(code);
+  if (result.error) return result;
+  if (result.data.length === 0) return notFound();
+  return success(result.data[0]);
 }
 
 /**
@@ -68,7 +105,7 @@ export async function upsertRoom(room: Room) {
       .from("rooms")
       .upsert({ owner, ...room })
       .throwOnError();
-      
+
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.code}`);
     return success();

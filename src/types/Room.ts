@@ -41,33 +41,9 @@ export const RoomSchemaNew = RoomSchema.extend({
 export type RoomGroup = z.infer<typeof RoomGroupSchema>;
 export type Room = z.infer<typeof RoomSchema>;
 
-export async function getRooms(supabase: SupabaseClient, code?: string): Promise<Room[]> {
-  /* Get rooms */
-  let query = supabase.from("rooms").select("code, name, groups, created");
-
-  if (code !== undefined) query = query.eq("code", code);
-  else {
-    /* Get current user */
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) throw userError;
-    const owner = userData.user.id;
-    query = query.order("created", { ascending: false }).eq("owner", owner);
-  }
-  query = query.throwOnError();
-
-  const { data } = await query;
-  return data?.map((d) => ({ ...d, created: new Date(d.created).toISOString() })) as Room[];
-}
-
 export function groupsForCount(count: number): RoomGroup[] {
   return Array.from(Array(count).keys()).map((g) => ({
     no: g + 1,
     name: `Group ${g + 1}`,
   }));
-}
-
-export async function getRoom(supabase: SupabaseClient, code: string): Promise<Room> {
-  const rooms = await getRooms(supabase, code);
-  if (rooms.length === 0) return notFound();
-  return rooms[0];
 }
