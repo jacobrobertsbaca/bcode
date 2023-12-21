@@ -26,11 +26,12 @@ import {
   Typography,
 } from "@mui/material";
 import { Formik } from "formik";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ConnectionStatus } from "@/types/Connection";
 import { random } from "lodash";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 
 /**
  * Available colors for guests to use.
@@ -107,12 +108,11 @@ function ChooseNameView({ onNameSelected }: ChooseNameViewProps) {
   );
 }
 
-function ChooseGroupView() {
+function ChooseGroupView({ room }: { room: Room }) {
   const roomStatus = useRoomState((state) => state.status);
-  const room = useRoomState((state) => state.room);
   const updateUser = useUserState((state) => state.updateUser);
 
-  if (room === null)
+  if (roomStatus === ConnectionStatus.Disconnected || roomStatus === ConnectionStatus.DisconnectedError)
     return (
       <EditorFrame>
         <OverlayBlur>
@@ -161,18 +161,21 @@ function ChooseGroupView() {
 }
 
 type GuestViewSelectorProps = {
+  room: Room;
   view: GuestViewStatus;
   setView: (view: GuestViewStatus) => void;
 };
 
-function GuestViewSelector({ view, setView }: GuestViewSelectorProps) {
+function GuestViewSelector({ room, view, setView }: GuestViewSelectorProps) {
   const group = useUserState((state) => state.user.group);
   const updateUser = useUserState((state) => state.updateUser);
+
   if (view === GuestViewStatus.Name) return <ChooseNameView onNameSelected={() => setView(GuestViewStatus.Room)} />;
   if (view === GuestViewStatus.Room) {
-    if (group === 0) return <ChooseGroupView />;
+    if (group === 0) return <ChooseGroupView room={room} />;
     return (
       <Editor
+        room={room}
         group={group}
         action={
           <Tooltip title="Leave group" arrow>
@@ -207,13 +210,12 @@ function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
  */
 export default function GuestView({ room }: { room: Room }) {
   const [view, setView] = useState(GuestViewStatus.Name);
-  const localRoom = useRoom(room, false);
-  if (localRoom != null) room = localRoom;
+  useRoom(room, useRouter(), false);
 
   return (
     <Stack spacing={2}>
       <GuestViewTitle room={room} view={view} />
-      <GuestViewSelector view={view} setView={setView} />
+      <GuestViewSelector room={room} view={view} setView={setView} />
     </Stack>
   );
 }

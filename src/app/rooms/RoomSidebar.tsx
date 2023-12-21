@@ -52,7 +52,8 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
               const { error } = await upsertRoom(room);
               if (error) throw new Error(error.message);
               if (exists) {
-                updatePeers(room);
+                updatePeers();
+                router.refresh();
                 setOpen(false);
               } else {
                 router.push(`/rooms/${room.code}`);

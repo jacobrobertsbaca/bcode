@@ -21,6 +21,7 @@ import { dark } from "./theme/dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { loadDocument, saveDocument } from "@/app/actions";
+import { Room } from "@/types/Room";
 
 const kEditorViewId = "code-view";
 const EditorTheme = new Compartment();
@@ -34,14 +35,14 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
 }
 
 type EditorProps = {
+  room: Room;
   group: number;
   action?: React.ReactNode;
 };
 
-export default function Editor({ group, action }: EditorProps) {
+export default function Editor({ room, group, action }: EditorProps) {
   /** Room state */
-  const room = useRoomState((room) => room.room);
-  const roomStatus = useRoomState((room) => room.status);
+  const roomStatus = useRoomState((state) => state.status);
 
   /** Editor state */
   const user = useUserState((state) => state.user);

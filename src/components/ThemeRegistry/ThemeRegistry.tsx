@@ -15,6 +15,7 @@ type ColorMode = "light" | "dark";
 const kColorModeStorageKey = "ThemeRegistry-PreferredColorMode";
 
 function defaultColorMode(prefersDarkModeSystem: boolean): ColorMode {
+  if (typeof localStorage === "undefined") return "light";
   const prefersDarkModeStored = localStorage.getItem(kColorModeStorageKey);
   if (prefersDarkModeStored) {
     if (prefersDarkModeStored === "light" || prefersDarkModeStored === "dark") return prefersDarkModeStored;
@@ -32,6 +33,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
     () => ({
       toggleColorMode: () => {
         setMode((prevMode) => {
+          if (typeof localStorage === "undefined") return "light";
           const newMode = prevMode === "light" ? "dark" : "light";
           localStorage.setItem(kColorModeStorageKey, newMode);
           return newMode;

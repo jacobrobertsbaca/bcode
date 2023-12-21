@@ -1,6 +1,7 @@
 "use client";
 
 import Editor from "@/components/code/Editor";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoom } from "@/state/room";
 import { useUserState } from "@/state/user";
 import { Room } from "@/types/Room";
@@ -13,7 +14,8 @@ import { useEffect } from "react";
  */
 export default function HostView({ room }: { room: Room }) {
   const updateUser = useUserState((state) => state.updateUser);
-  useRoom(room, true);
+  useRoom(room, useRouter(), true);
+
   useEffect(() => {
     updateUser({ isHost: true, name: "Host", color: "#515151" });
   }, []);
@@ -21,7 +23,7 @@ export default function HostView({ room }: { room: Room }) {
   return (
     <Stack spacing={4}>
       {room.groups.map((group) => (
-        <Editor key={group.no} group={group.no} />
+        <Editor key={group.no} room={room} group={group.no} />
       ))}
     </Stack>
   );

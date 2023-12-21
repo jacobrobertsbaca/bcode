@@ -1,7 +1,7 @@
 "use client";
 
 import { useRoomState } from "@/state/room";
-import { LiveUser, useUserState } from "@/state/user";
+import { useUserState } from "@/state/user";
 import { ConnectionStatus } from "@/types/Connection";
 import { Avatar, Stack, StackProps, Tooltip, Typography, alpha } from "@mui/material";
 
