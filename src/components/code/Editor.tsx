@@ -15,11 +15,12 @@ import { ConnectionStatus } from "@/types/Connection";
 import EditorOverlay from "./EditorOverlay";
 import { LiveUser, useUserState } from "@/state/user";
 import EditorOnline from "./EditorOnline";
-import { Compartment } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { light } from "./theme/light";
 import { dark } from "./theme/dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
+import { loadDocument, saveDocument } from "@/app/actions";
 
 const kEditorViewId = "code-view";
 const EditorTheme = new Compartment();
@@ -61,15 +62,24 @@ export default function Editor({ group, action }: EditorProps) {
 
     // If we're not connected to a room, we can't load the editor
     if (roomStatus !== ConnectionStatus.Connected) return;
-    const channel = `${room!.code}-${group}`;
 
     // Setup ydoc and connection to Supabase
+    const channel = `${room!.code}:${group}`;
     const supabase = createClient();
     const ydoc = new Y.Doc();
+
     provider.current = new SupabaseProvider(ydoc, supabase, {
       channel,
-      diffTable: "diffs",
-      diffView: "diffsview",
+
+      async loadDocument() {
+        const state = await loadDocument(channel);
+        if (!state) return null;
+        return Uint8Array.from(state);
+      },
+
+      async saveDocument(diff) {
+        await saveDocument(channel, Array.from(diff));
+      },
     });
 
     const ytext = ydoc.getText("codemirror");
@@ -86,6 +96,7 @@ export default function Editor({ group, action }: EditorProps) {
         keymap.of([indentWithTab]),
         cpp(),
         EditorTheme.of(editorTheme),
+        // EditorState.readOnly.of(true),
         yCollab(ytext, provider.current.awareness, { undoManager }),
       ],
       parent: parentElem,
