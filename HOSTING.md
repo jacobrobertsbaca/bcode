@@ -13,21 +13,15 @@ To get started, [create a Supabase project](https://supabase.com/dashboard/new/_
 The following Postgres tables are required to run. You can create these by running the queries below in the [Supabase SQL editor](https://supabase.com/dashboard/project/_/sql/new).
 
 ```sql
-create table diffs (
+create table updates (
   id bigserial primary key,
   channel text not null,
-  diff jsonb not null
+  update bytea not null
 );
 
-create view diffsview as (
-  select
-    diffs.channel,
-    json_agg(diffs.diff) as diffs
-  from (
-    select channel, diff
-    from diffs
-    order by id desc
-  ) diffs
+create view updates_agg as (
+  select channel, array_agg(update) as updates
+  from updates
   group by channel
 );
 

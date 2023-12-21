@@ -1,15 +1,13 @@
 import GuestView from "./GuestView";
-import { getRoom } from "../actions";
+import { getPageRoom } from "../actions";
 
 export default async function GuestRoomPage({ params }: { params: { room: string } }) {
-  const { data: room, error } = await getRoom(params.room);
-  if (error) throw new Error(error.message);
+  const room = await getPageRoom(params.room);
   return <GuestView room={room} />;
 }
 
 export async function generateMetadata({ params }: { params: { room: string } }) {
-  const { data: room, error } = await getRoom(params.room);
-  if (error) throw new Error(error.message);
+  const room = await getPageRoom(params.room);
   return {
     title: room.name,
   };

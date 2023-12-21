@@ -5,19 +5,17 @@ import ShowMore from "./ShowMore";
 import Link from "next/link";
 import SquaresIcon from "@heroicons/react/24/outline/Squares2X2Icon";
 import EditorOnline from "@/components/code/EditorOnline";
-import { getRoom } from "@/app/actions";
+import { getPageRoom } from "@/app/actions";
 
 export async function generateMetadata({ params }: { params: { room: string } }) {
-  const { data: room, error } = await getRoom(params.room);
-  if (error) throw new Error(error.message);
+  const room = await getPageRoom(params.room);
   return {
     title: room.name,
   };
 }
 
 export default async function HostRoomPage({ params }: { params: { room: string } }) {
-  const { data: room, error } = await getRoom(params.room);
-  if (error) throw new Error(error.message);
+  const room = await getPageRoom(params.room);
   return (
     <Stack spacing={2}>
       <Stack spacing={1}>

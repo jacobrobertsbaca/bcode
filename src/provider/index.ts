@@ -11,36 +11,18 @@ export type SupabaseProviderConfig = {
   channel: string;
 
   /**
-   * The name of the diff table where document updates will be saved to.
-   *
-   * This table's schema must be a superset of the following:
-   *
-   * - `id bigserial primary key`
-   * - `channel text not null`
-   * - `diff jsonb not null`
+   * Callback to save document updates to Supabase.
+   * If undefined, document will not be saved.
+   * @param diff A YJS document update blob.
    */
-  diffTable: string;
+  saveDocument?: (diff: Uint8Array) => void | Promise<void>;
 
   /**
-   * The name of the view containing aggregated document updates.
-   *
-   * The table must be a view on the {@link SupabaseProviderConfig.diffTable} defined as:
-   *
-   * ```sql
-   * create view {diffView} as (
-   *  select
-   *    diffs.channel,
-   *    json_agg(diffs.diff) as diffs
-   *  from (
-   *    select channel, diff
-   *    from {diffTable}
-   *    order by id desc
-   *  ) diffs
-   *  group by channel
-   * );
-   * ```
-   * */
-  diffView: string;
+   * Callback to load initial document state from Supabase.
+   * If undefined, document will not be loaded (will have empty initial state).
+   * @returns A YJS document state blob, or `null` if no data has been saved. 
+   */
+  loadDocument?: () => Uint8Array | null | Promise<Uint8Array | null>;
 
   /**
    * How often the provider should do a complete resync with peers. Set to 0 or `false` to disable.
@@ -67,12 +49,6 @@ export enum SupabaseProviderEvents {
 enum ChannelEvents {
   Message = "message",
   Awareness = "awareness",
-}
-
-enum DiffColumns {
-  Channel = "channel",
-  Diff = "diff",
-  Diffs = "diffs",
 }
 
 const DefaultResyncMs = 5000;
@@ -209,62 +185,58 @@ export class SupabaseProvider extends EventEmitter {
 
   private async onSubscribed() {
     this.logger("Successfully connected to Realtime channel.");
-    this.logger("Loading document data from Supabase database.");
-    const { data, error } = await this.supabase
-      .from(this.config.diffView)
-      .select(DiffColumns.Diffs)
-      .eq(DiffColumns.Channel, this.config.channel)
-      .maybeSingle();
-
-    if (error) {
-      this.logger("Failed to retrieve document data from Supabase", error);
-      await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
-      return;
-    }
-
-    if (data) {
-      this.logger("Retrieved data from Supabase.");
-      const diffs: number[][] = data[DiffColumns.Diffs];
-      try {
-        this.logger("Applying data to document.");
-        Y.applyUpdateV2(this.doc, Y.mergeUpdatesV2(diffs.map((d) => Uint8Array.from(d))), this);
-        this.previous = Y.encodeStateVector(this.doc);
-      } catch (error) {
-        this.logger("Applying document updates resulted in error", error);
-        await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
-        return;
-      }
-    } else {
-      this.logger("No data was retrieved from Supabase.");
-    }
-
+    this.loadDocument();
     this.logger("Succesfully connected.");
     this._status = ConnectionStatus.Connected;
     this.emit(SupabaseProviderEvents.Status, this, this.status, undefined);
   }
 
   /**
+   * Attempts to the load the document remotely from the database.
+   */
+  private async loadDocument() {
+    if (!this.config.loadDocument) return;
+    this.logger("Fetching persistent document data...");
+    
+    /* Run supplied loading hook, failing if any errors occur */
+    try {
+      var data = await this.config.loadDocument();
+      if (!data) return this.logger("No persistent data was retrieved.");
+    } catch (error: any) {
+      this.logger("Error occured while retrieving document data", error);
+      return await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
+    }
+
+    /* Attempt to apply data to document */
+    this.logger("Retrieved persistent document data. Applying to document...");
+    try {
+      Y.applyUpdateV2(this.doc, data, this);
+      this.previous = Y.encodeStateVector(this.doc);
+    } catch (error: any) {
+      this.logger("Applying document updates resulted in error", error);
+      return await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
+    }
+  } 
+
+  /**
    * Saves the document remotely to the database.
    * This should be debounced to save on database egress.
    */
   private async saveDocument() {
-    this.logger("Saving document to Supabase.");
+    if (!this.config.saveDocument) return;
+    this.logger("Saving persistent document data...");
     const current = Y.encodeStateAsUpdateV2(this.doc);
     const diff = this.previous ? Y.diffUpdateV2(current, this.previous) : Y.encodeStateAsUpdateV2(this.doc);
-    const content = Array.from(diff);
-    if (JSON.stringify([0, 0]) === JSON.stringify(content)) return;
 
-    const record = {
-      [DiffColumns.Channel]: this.config.channel,
-      [DiffColumns.Diff]: content,
-    };
+    /* This prevents us from saving empty updates */
+    if (JSON.stringify([0, 0]) === JSON.stringify(Array.from(diff))) return;
 
-    const { error } = await this.supabase.from(this.config.diffTable).insert(record);
-
-    if (error) {
-      this.logger("Failed to save data to Supabase", error);
-      await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
-      return;
+    /* Save document, failing if errors occur */
+    try {
+      await this.config.saveDocument(diff);
+    } catch (error: any) {
+      this.logger("Failed to save persistent document data", error);
+      return await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
     }
 
     this.previous = Y.encodeStateVector(this.doc);
