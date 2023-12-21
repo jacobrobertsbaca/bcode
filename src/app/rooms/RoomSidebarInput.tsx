@@ -6,7 +6,7 @@ import { Room, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
 import { Box, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
-import { debounce } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
 
@@ -14,7 +14,7 @@ function maskCodeInput(code: string): string {
   return code
     .toLowerCase()
     .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-_]/g, "")
+    .replace(/[^a-z0-9-]/g, "")
     .substring(0, 30);
 }
 
@@ -145,7 +145,7 @@ export default function RoomSidebarInput() {
         size="large"
         type="submit"
         loading={formik.isSubmitting}
-        disabled={!formik.isValid}
+        disabled={!formik.isValid || isEqual(formik.initialValues, formik.values)}
       >
         <span>Save</span>
       </LoadingButton>

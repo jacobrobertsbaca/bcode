@@ -1,23 +1,21 @@
 import { courier } from "@/components/ThemeRegistry/fonts";
-import createServer from "@/provider/server";
-import { getRoom } from "@/types/Room";
 import { Button, Stack, SvgIcon, Typography } from "@mui/material";
 import HostView from "./HostView";
 import ShowMore from "./ShowMore";
 import Link from "next/link";
 import SquaresIcon from "@heroicons/react/24/outline/Squares2X2Icon";
 import EditorOnline from "@/components/code/EditorOnline";
+import { getPageRoom } from "@/app/actions";
 
 export async function generateMetadata({ params }: { params: { room: string } }) {
-  const room = await getRoom(createServer(), params.room);
+  const room = await getPageRoom(params.room);
   return {
     title: room.name,
   };
 }
 
 export default async function HostRoomPage({ params }: { params: { room: string } }) {
-  const room = await getRoom(createServer(), params.room);
-
+  const room = await getPageRoom(params.room);
   return (
     <Stack spacing={2}>
       <Stack spacing={1}>

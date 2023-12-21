@@ -1,17 +1,16 @@
 import { Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { AddRoomButton } from "./RoomSidebar";
-import createServer from "@/provider/server";
-import { getRooms } from "@/types/Room";
 import RoomRow from "./RoomRow";
 import { Metadata } from "next";
+import { getRooms } from "../actions";
 
 export const metadata: Metadata = {
   title: "Rooms",
 };
 
 export default async function RoomsLayout() {
-  const supabase = createServer();
-  const rooms = await getRooms(supabase);
+  const { data: rooms, error } = await getRooms();
+  if (error) throw new Error(error.message);
 
   return (
     <Stack>

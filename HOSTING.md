@@ -13,21 +13,15 @@ To get started, [create a Supabase project](https://supabase.com/dashboard/new/_
 The following Postgres tables are required to run. You can create these by running the queries below in the [Supabase SQL editor](https://supabase.com/dashboard/project/_/sql/new).
 
 ```sql
-create table diffs (
+create table updates (
   id bigserial primary key,
   channel text not null,
-  diff jsonb not null
+  update bytea not null
 );
 
-create view diffsview as (
-  select
-    diffs.channel,
-    json_agg(diffs.diff) as diffs
-  from (
-    select channel, diff
-    from diffs
-    order by id desc
-  ) diffs
+create view updates_agg with (security_invoker) as (
+  select channel, array_agg(update) as updates
+  from updates
   group by channel
 );
 
@@ -38,6 +32,8 @@ create table rooms (
   created timestamp not null
 );
 ```
+
+You should enable RLS on the `rooms` and `updates` tables so that clients cannot make arbitrary changes to them. Beyond enabling RLS, you do not need to add RLS policies to the tables because all modifications will be performed through a privileged Supabase client that bypasses RLS policies.
 
 ### Auth
 
@@ -52,13 +48,15 @@ In the root directory of this project, create a `.env.local` file with the follo
 ```s
 NEXT_PUBLIC_SUPABASE_URL=[Supabase URL]
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[Supabase Anonymous Key]
+SUPABASE_SERVER_KEY=[Supabase Service Role Key]
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 |Variable|Meaning|
 |----|----|
 `NEXT_PUBLIC_SUPABASE_URL` | The Supabase project's URL ([see dashboard](https://supabase.com/dashboard/project/_/settings/api))
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key shown ([see dashboard](https://supabase.com/dashboard/project/_/settings/api))
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Used in browser, will be exposed to clients.
+`SUPABASE_SERVER_KEY` | The project's `service_role` key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Only used server-side, will not be exposed to clients.
 `NEXT_PUBLIC_SITE_URL` | The website URL (no trailing slashes). Used to generate QR code links.
 
 ### Running Locally
@@ -88,4 +86,4 @@ You can add additional redirect URLs here depending on your deployment setup.
 
 ### Environment Variables
 
-Update your local `NEXT_PUBLIC_SITE_URL` variable in `.env.local` to match your public domain. Then, add these variables to your Vercel project's **Settings > Environment Variables** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!
+Update your local `NEXT_PUBLIC_SITE_URL` variable in `.env.local` to match your public domain. Then, update your Vercel project's **Settings > Environment Variables** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!

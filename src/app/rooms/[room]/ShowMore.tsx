@@ -6,10 +6,9 @@ import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typograph
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
-import createClient from "@/provider/client";
 import { useRoomState } from "@/state/room";
 import { useRouter } from "@/components/navigation/AppProgressBar";
-import { revalidateRooms } from "@/provider/revalidate";
+import { deleteRoom } from "@/app/actions";
 
 export default function ShowMore({ room }: { room: Room }) {
   const [editing, setEditing] = React.useState(false);
@@ -60,14 +59,9 @@ export default function ShowMore({ room }: { room: Room }) {
         }
         onClose={() => setDeleting(false)}
         onDelete={async () => {
-          const supabase = createClient();
-          await Promise.all([
-            supabase.from("rooms").delete().eq("code", room.code).throwOnError(),
-            supabase.from("diffs").delete().like("channel", `${room.code}%`).throwOnError(),
-            updatePeers(null),
-            revalidateRooms(), // Refresh /rooms since we're deleting a room
-          ]);
-
+          const { error } = await deleteRoom(room.code);
+          if (error) throw new Error(error.message);
+          await updatePeers(null);
           router.replace("/rooms");
         }}
       />

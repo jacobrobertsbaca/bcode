@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createServer();
+  const supabase = createServer(true);
   const {
     data: { session },
   } = await supabase.auth.getSession();
