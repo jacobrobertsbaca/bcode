@@ -62,6 +62,15 @@ function success<T = string>(result?: T) {
 }
 
 /**
+ * Gets the ID of the current user.
+ * @returns The user ID
+ */
+async function getUser(): Promise<string | undefined> {
+  const supabase = createServer(true);
+  return (await supabase.auth.getUser()).data.user?.id;
+}
+
+/**
  * Encodes `buffer` to a `bytea` format Supabase understands.
  * @param buffer A byte buffer
  * @returns A string encoding of `buffer`
@@ -161,7 +170,7 @@ export async function getRooms(code?: string) {
     if (code !== undefined) query = query.eq("code", code);
     else {
       /* Get current user */
-      const owner = (await supabase.auth.getUser()).data.user?.id;
+      const owner = await getUser();
       if (!owner) return failure(401, "Unauthorized");
       query = query.order("created", { ascending: false }).eq("owner", owner);
     }
@@ -234,7 +243,7 @@ export async function upsertRoom(room: Room) {
 
     /* Ensure user is logged in */
     const supabase = createServer();
-    const owner = (await supabase.auth.getUser()).data?.user?.id;
+    const owner = await getUser();
     if (!owner) return failure(401, "Unauthorized");
 
     /* Get existing room with this code, if any */
@@ -275,7 +284,7 @@ export async function deleteRoom(code: string) {
     const supabase = createServer();
 
     /* Ensure user is logged in */
-    const owner = (await supabase.auth.getUser()).data?.user?.id;
+    const owner = await getUser();
     if (!owner) return failure(401, "Unauthorized");
 
     /* Verify that room owned by this user exists */

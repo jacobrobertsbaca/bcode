@@ -19,7 +19,7 @@ create table updates (
   update bytea not null
 );
 
-create view updates_agg as (
+create view updates_agg with (security_invoker) as (
   select channel, array_agg(update) as updates
   from updates
   group by channel
@@ -33,7 +33,7 @@ create table rooms (
 );
 ```
 
-You should enable RLS on the `rooms` and `updates` tables so that clients cannot make arbitrary changes to them. Beyond enabling RLS, you do not need to add RLS policies to the tables because all modifications will be performed through a privileged Supabase client that bypasses any RLS policies.
+You should enable RLS on the `rooms` and `updates` tables so that clients cannot make arbitrary changes to them. Beyond enabling RLS, you do not need to add RLS policies to the tables because all modifications will be performed through a privileged Supabase client that bypasses RLS policies.
 
 ### Auth
 
