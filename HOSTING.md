@@ -33,6 +33,8 @@ create table rooms (
 );
 ```
 
+You should enable RLS on the `rooms` and `updates` tables so that clients cannot make arbitrary changes to them. Beyond enabling RLS, you do not need to add RLS policies to the tables because all modifications will be performed through a privileged Supabase client that bypasses any RLS policies.
+
 ### Auth
 
 You must [enable Github as an auth provider](https://supabase.com/dashboard/project/_/auth/providers) within Supabase to allow users to log in. You can do this by following the [Supabase guide for setting up Github OAuth](https://supabase.com/docs/guides/auth/social-login/auth-github), which explains the steps required to register an OAuth application with Github.
@@ -46,13 +48,15 @@ In the root directory of this project, create a `.env.local` file with the follo
 ```s
 NEXT_PUBLIC_SUPABASE_URL=[Supabase URL]
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[Supabase Anonymous Key]
+SUPABASE_SERVER_KEY=[Supabase Service Role Key]
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 |Variable|Meaning|
 |----|----|
 `NEXT_PUBLIC_SUPABASE_URL` | The Supabase project's URL ([see dashboard](https://supabase.com/dashboard/project/_/settings/api))
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key shown ([see dashboard](https://supabase.com/dashboard/project/_/settings/api))
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Used in browser, will be exposed to clients.
+`SUPABASE_SERVER_KEY` | The project's `service_role` key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Only used server-side, will not be exposed to clients.
 `NEXT_PUBLIC_SITE_URL` | The website URL (no trailing slashes). Used to generate QR code links.
 
 ### Running Locally
@@ -82,4 +86,4 @@ You can add additional redirect URLs here depending on your deployment setup.
 
 ### Environment Variables
 
-Update your local `NEXT_PUBLIC_SITE_URL` variable in `.env.local` to match your public domain. Then, add these variables to your Vercel project's **Settings > Environment Variables** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!
+Update your local `NEXT_PUBLIC_SITE_URL` variable in `.env.local` to match your public domain. Then, update your Vercel project's **Settings > Environment Variables** by copy-and-pasting your `.env.local` into the Vercel environment variables settings. After a redeployment (so your app picks up the new values for these variables), the site should be good to go!
