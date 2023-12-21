@@ -13,14 +13,14 @@ import { enqueueSnackbar } from "notistack";
 import { Canvg } from "canvg";
 import Navigation from "@/components/navigation/Navigation";
 import { minifyURL } from "@/app/util";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 
 const kQRCodeId = "qr-code";
 
 export default function RoomCode({ room }: { room: Room }) {
   const theme = useTheme();
   const link = `${process.env.NEXT_PUBLIC_SITE_URL}/${room.code}`;
-  const localRoom = useRoom(room, true);
-  if (localRoom != null) room = localRoom;
+  useRoom(room, useRouter(), true);
 
   async function copyToClipboard() {
     await navigator.clipboard.writeText(link);

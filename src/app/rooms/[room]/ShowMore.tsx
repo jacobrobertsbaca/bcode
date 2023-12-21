@@ -61,7 +61,7 @@ export default function ShowMore({ room }: { room: Room }) {
         onDelete={async () => {
           const { error } = await deleteRoom(room.code);
           if (error) throw new Error(error.message);
-          await updatePeers(null);
+          updatePeers();
           router.replace("/rooms");
         }}
       />

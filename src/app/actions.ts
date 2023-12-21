@@ -5,10 +5,10 @@
  * interactions with the database. You can think of this file as defining the client API
  * for this project, including any authentication checks to ensure security. All accesses
  * to database should be done here.
- * 
+ *
  * For more information about Next.js server actions, see
  * https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
- * 
+ *
  */
 
 import createServer from "@/provider/server";
@@ -17,7 +17,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { decodeUpdateV2, mergeUpdatesV2 } from "yjs";
 
-/* 
+/*
  * ============================================================================
  *  Utility Functions
  * ============================================================================
@@ -30,13 +30,13 @@ import { decodeUpdateV2, mergeUpdatesV2 } from "yjs";
 enum Tables {
   Rooms = "rooms",
   Updates = "updates",
-  AggregateUpdates = "updates_agg"
+  AggregateUpdates = "updates_agg",
 }
 
 /**
  * Returns a failure to the caller.
  * @param httpCode The [HTTP status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) for the error.
- * @param message An error message to return the caller of the server action. 
+ * @param message An error message to return the caller of the server action.
  * @returns A failure response.
  */
 function failure(httpCode: number, message: string) {
@@ -56,7 +56,7 @@ function failure(httpCode: number, message: string) {
  */
 function success<T = string>(result?: T) {
   return {
-    data: (result ?? "Success") as T,
+    data: (result !== undefined ? result : "Success") as T,
     error: null,
   };
 }
@@ -76,7 +76,7 @@ async function getUser(): Promise<string | undefined> {
  * @returns A string encoding of `buffer`
  */
 function encodeBytes(buffer: Buffer): string {
-  return `\\x${buffer.toString('hex')}`;
+  return `\\x${buffer.toString("hex")}`;
 }
 
 /**
@@ -85,10 +85,10 @@ function encodeBytes(buffer: Buffer): string {
  * @returns The decoded buffer of the string
  */
 function decodeBytes(encoded: string): Buffer {
-  return Buffer.from(encoded.slice(2), 'hex');
+  return Buffer.from(encoded.slice(2), "hex");
 }
 
-/* 
+/*
  * ============================================================================
  *  Document State Actions
  * ============================================================================
@@ -112,17 +112,17 @@ export async function saveDocument(channel: string, update: number[]): Promise<v
 
   const code = match[1];
   const group = parseInt(match[2], 10);
-  
+
   const { data: room, error } = await getRoom(code);
   if (error) throw new Error(error.message);
   if (!room) throw new Error("No such room");
-  if (!room.groups.some(g => g.no === group)) throw new Error("No such group in room");
+  if (!room.groups.some((g) => g.no === group)) throw new Error("No such group in room");
 
   /*
-  * Validate YJS update by calling `decodeUpdate`. If YJS throws an error 
-  * while decoding a user-provided update, then we must assume that it is malformed 
-  * and not accept it.
-  */
+   * Validate YJS update by calling `decodeUpdate`. If YJS throws an error
+   * while decoding a user-provided update, then we must assume that it is malformed
+   * and not accept it.
+   */
   const bytes = Buffer.from(update);
   decodeUpdateV2(bytes);
 
@@ -151,7 +151,7 @@ export async function loadDocument(channel: string): Promise<number[] | null> {
   return Array.from(merged);
 }
 
-/* 
+/*
  * ============================================================================
  *  Room Management Actions
  * ============================================================================
@@ -159,7 +159,7 @@ export async function loadDocument(channel: string): Promise<number[] | null> {
 
 /**
  * Gets the rooms owned by the current user.
- * @param code If defined, returns a single room with the given code. 
+ * @param code If defined, returns a single room with the given code.
  * If undefined, returns all rooms owned by the current user: user must be authorized.
  * @returns An array of {@link Room} objects.
  */
@@ -198,14 +198,14 @@ export async function getRoom(code: string) {
  * Gets a specific room for a page.
  * @param code The room code
  * @returns The {@link Room} object with this code.
- * 
+ *
  * This wraps {@link getRoom} to make querying rooms easier for pages.
- * Will throw errors. If room doesn't exist, navigates to 404. 
+ * Will throw errors. Redirects to 404 if room not found.
  */
 export async function getPageRoom(code: string) {
   const { data, error } = await getRoom(code);
   if (error) throw new Error(error.message);
-  if (!data) return notFound();
+  if (!data) notFound();
   return data;
 }
 
@@ -230,7 +230,7 @@ export async function roomExists(code: string, owner?: string) {
 /**
  * Upserts a room.
  * @param room The room object
- * 
+ *
  * If no room with this code exists, creates it.
  * If the room code exists, user must own the room to modify it.
  */
@@ -265,6 +265,8 @@ export async function upsertRoom(room: Room) {
 
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.code}`);
+    revalidatePath(`/${room.code}`);
+    revalidatePath(`/code/${room.code}`);
     return success();
   } catch (err: any) {
     return failure(500, err.message);
@@ -274,8 +276,8 @@ export async function upsertRoom(room: Room) {
 /**
  * Deletes a room by code.
  * @param code The room code to delete.
- * 
- * If the room doesn't exist, does nothing. 
+ *
+ * If the room doesn't exist, does nothing.
  * If it does, user must own the room to delete it.
  * Deleting a room will delete any code written for it as well.
  */
