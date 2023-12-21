@@ -185,7 +185,7 @@ export class SupabaseProvider extends EventEmitter {
 
   private async onSubscribed() {
     this.logger("Successfully connected to Realtime channel.");
-    this.loadDocument();
+    await this.loadDocument();
     this.logger("Succesfully connected.");
     this._status = ConnectionStatus.Connected;
     this.emit(SupabaseProviderEvents.Status, this, this.status, undefined);
