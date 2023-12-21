@@ -276,9 +276,7 @@ export class SupabaseProvider extends EventEmitter {
     try {
       Y.applyUpdate(this.doc, message, this);
     } catch (err: any) {
-      this.logger("Error receiving document update", err);
-      this.destroyInternal(ConnectionStatus.DisconnectedError, err);
-      return;
+      this.logger("Error applying remote document update", err);
     }
   }
 
@@ -287,7 +285,11 @@ export class SupabaseProvider extends EventEmitter {
    * @param message A YJS awareness update.
    */
   private receiveAwarenessUpdate(message: Uint8Array) {
-    AwarenessProtocol.applyAwarenessUpdate(this.awareness, message, this);
+    try {
+      AwarenessProtocol.applyAwarenessUpdate(this.awareness, message, this);
+    } catch (error: any) {
+      this.logger("Error applying remote awareness update", error);
+    }
   }
 
   private onDocumentUpdate(update: Uint8Array, origin: any) {
