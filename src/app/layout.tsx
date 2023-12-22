@@ -5,6 +5,7 @@ import { Container } from "@mui/material";
 import createServer from "@/provider/server";
 import AuthObserver from "@/components/AuthObserver";
 import { Metadata } from "next";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
   title: "bcode",
@@ -16,11 +17,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const {
     data: { session },
   } = await supabase.auth.getSession();
+
+  /* Get value of theme cookie from headers to pass to ThemeRegistry */
+  const cookieStore = cookies();
+  const theme = cookieStore.get("theme")?.value;
+
   return (
     <html style={{ height: "100%" }} lang="en">
       <body style={{ height: "100%" }}>
         <AuthObserver accessToken={session?.access_token} />
-        <ThemeRegistry>
+        <ThemeRegistry theme={theme}>
           <Container
             maxWidth="lg"
             sx={{

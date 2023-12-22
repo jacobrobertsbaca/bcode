@@ -8,34 +8,32 @@ import { SnackbarProvider } from "notistack";
 import createTheme from "./theme";
 import { useMediaQuery } from "@mui/material";
 import { AppProgressBar } from "../navigation/AppProgressBar";
+import { useCookies } from "react-cookie";
 
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
 
-type ColorMode = "light" | "dark";
-const kColorModeStorageKey = "ThemeRegistry-PreferredColorMode";
+export default function ThemeRegistry({ theme, children }: { theme?: string; children: React.ReactNode }) {
+  const systemMode = useMediaQuery("(prefers-color-scheme: dark)") ? "dark" : "light";
+  const initialMode = theme === "light" || theme === "dark" ? theme : systemMode;
+  const [mode, setMode] = React.useState<"light" | "dark">(initialMode);
+  const [cookies, setCookie] = useCookies(["theme"]);
 
-function defaultColorMode(prefersDarkModeSystem: boolean): ColorMode {
-  if (typeof localStorage === "undefined") return "light";
-  const prefersDarkModeStored = localStorage.getItem(kColorModeStorageKey);
-  if (prefersDarkModeStored) {
-    if (prefersDarkModeStored === "light" || prefersDarkModeStored === "dark") return prefersDarkModeStored;
-  }
+  /* Observe cookies changes to ensure theme changes across tabs */
+  React.useEffect(() => {
+    const newTheme = cookies.theme;
+    if (newTheme !== "light" && newTheme != "dark") return;
+    setMode(newTheme);
+  }, [cookies]);
 
-  return prefersDarkModeSystem ? "dark" : "light";
-}
-
-export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const prefersDarkModeSystem = useMediaQuery("(prefers-color-scheme: dark)");
-  const [mode, setMode] = React.useState<ColorMode>(defaultColorMode(prefersDarkModeSystem));
-
-  const theme = createTheme(mode);
+  const muiTheme = createTheme(mode);
   const colorMode = React.useMemo(
     () => ({
       toggleColorMode: () => {
         setMode((prevMode) => {
-          if (typeof localStorage === "undefined") return "light";
           const newMode = prevMode === "light" ? "dark" : "light";
-          localStorage.setItem(kColorModeStorageKey, newMode);
+          setCookie("theme", newMode, {
+            maxAge: 365 * 24 * 60 * 60, // 365 days to expire
+          });
           return newMode;
         });
       },
@@ -46,7 +44,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
   return (
     <NextAppDirEmotionCacheProvider options={{ key: "mui" }}>
       <ColorModeContext.Provider value={colorMode}>
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={muiTheme}>
           {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
           <CssBaseline />
           <SnackbarProvider />
@@ -54,7 +52,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
         </ThemeProvider>
         <AppProgressBar
           height="4px"
-          color={theme.palette.background.contrast}
+          color={muiTheme.palette.background.contrast}
           options={{ showSpinner: false }}
           shallowRouting
         />
