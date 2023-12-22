@@ -32,6 +32,7 @@ export default function ThemeRegistry({ theme, children }: { theme?: string; chi
         setMode((prevMode) => {
           const newMode = prevMode === "light" ? "dark" : "light";
           setCookie("theme", newMode, {
+            path: "/",
             maxAge: 365 * 24 * 60 * 60, // 365 days to expire
           });
           return newMode;
