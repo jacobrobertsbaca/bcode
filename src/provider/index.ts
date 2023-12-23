@@ -77,18 +77,18 @@ export class SupabaseProvider extends EventEmitter {
     }, this.config.saveInterval || DefaultSaveMs);
 
     /* Register unload handlers */
-    this.onUnloadBound = this.onUnload.bind(this);
+    this.onUnload = this.onUnload.bind(this);
     if (typeof window !== "undefined") {
-      window.addEventListener("beforeunload", this.onUnloadBound);
+      window.addEventListener("beforeunload", this.onUnload);
     } else if (typeof process !== "undefined") {
-      process.on("exit", this.onUnloadBound);
+      process.on("exit", this.onUnload);
     }
 
     /* Bind to document/awareness callbacks */
-    this.onDocumentUpdateBound = this.onDocumentUpdate.bind(this);
-    this.onAwarenessUpdateBound = this.onAwarenessUpdate.bind(this);
-    this.doc.on("update", this.onDocumentUpdateBound);
-    this.awareness.on("update", this.onAwarenessUpdateBound);
+    this.onDocumentUpdate = this.onDocumentUpdate.bind(this);
+    this.onAwarenessUpdate = this.onAwarenessUpdate.bind(this);
+    this.doc.on("update", this.onDocumentUpdate);
+    this.awareness.on("update", this.onAwarenessUpdate);
 
     /* Fire connection event before connecting to channel */
     this._status = ConnectionStatus.Connecting;
@@ -147,10 +147,6 @@ export class SupabaseProvider extends EventEmitter {
   private alone: boolean = true;
   private saveDocumentDebounced: () => void;
 
-  private onUnloadBound: typeof this.onUnload;
-  private onDocumentUpdateBound: typeof this.onDocumentUpdate;
-  private onAwarenessUpdateBound: typeof this.onAwarenessUpdate;
-
   private get resyncInterval(): number {
     if (this.config.resyncInterval === undefined) return DefaultResyncMs;
     return this.config.resyncInterval || 0;
@@ -167,14 +163,14 @@ export class SupabaseProvider extends EventEmitter {
     /* Remove awareness and unregister unload handlers */
     this.onUnload();
     if (typeof window !== "undefined") {
-      window.removeEventListener("beforeunload", this.onUnloadBound);
+      window.removeEventListener("beforeunload", this.onUnload);
     } else if (typeof process !== "undefined") {
-      process.off("exit", this.onUnloadBound);
+      process.off("exit", this.onUnload);
     }
 
     /* Unbind from document/awareness callbacks */
-    this.doc.off("update", this.onDocumentUpdateBound);
-    this.awareness.off("update", this.onAwarenessUpdateBound);
+    this.doc.off("update", this.onDocumentUpdate);
+    this.awareness.off("update", this.onAwarenessUpdate);
 
     /* Remove channel from Supabase if it hasn't been already */
     if (this.channel) {
