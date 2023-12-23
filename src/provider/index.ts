@@ -252,7 +252,8 @@ export class SupabaseProvider extends EventEmitter {
    * This should be debounced to save on database egress.
    */
   private async saveDocument() {
-    if (!this.config.saveInterval) return;
+    if (this.status !== ConnectionStatus.Connected) return;
+    if (this.config.saveInterval === 0 || this.config.saveInterval === false) return;
     if (!this.config.saveDocument) return;
     this.logger("Saving persistent document data...");
     const current = Y.encodeStateAsUpdateV2(this.doc);
