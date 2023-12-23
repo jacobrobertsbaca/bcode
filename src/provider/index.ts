@@ -20,20 +20,21 @@ export type SupabaseProviderConfig = {
   /**
    * Callback to load initial document state from Supabase.
    * If undefined, document will not be loaded (will have empty initial state).
-   * @returns A YJS document state blob, or `null` if no data has been saved. 
+   * @returns A YJS document state blob, or `null` if no data has been saved.
    */
   loadDocument?: () => Uint8Array | null | Promise<Uint8Array | null>;
 
   /**
-   * How often the provider should do a complete resync with peers. Set to 0 or `false` to disable.
-   * Defaults to 5000ms.
+   * How often the provider should do a complete resync with peers in milliseconds.
+   * Set to 0 or `false` to disable. Defaults to 20,000 ms.
    */
   resyncInterval?: number | false;
 
   /**
-   * How often to save the document to the database. Defaults to 5000ms.
+   * How often to save the document to the database in milliseconds.
+   * Set to 0 or `false` to disable. Defaults to 5,000 ms.
    */
-  saveInterval?: number;
+  saveInterval?: number | false;
 };
 
 export enum SupabaseProviderEvents {
@@ -51,7 +52,7 @@ enum ChannelEvents {
   Awareness = "awareness",
 }
 
-const DefaultResyncMs = 5000;
+const DefaultResyncMs = 20000;
 const DefaultSaveMs = 5000;
 
 export class SupabaseProvider extends EventEmitter {
@@ -68,12 +69,7 @@ export class SupabaseProvider extends EventEmitter {
     this.awareness = new AwarenessProtocol.Awareness(doc);
 
     /* Set up resyncInterval */
-    if (this.resyncInterval > 0) {
-      this.resync = setInterval(() => {
-        const update = Y.encodeStateAsUpdate(this.doc);
-        this.sendDocumentUpdate(update);
-      }, this.resyncInterval);
-    }
+    if (this.resyncInterval > 0) this.resync = setInterval(this.sendResyncUpdate.bind(this), this.resyncInterval);
 
     /* Setup debounced save function */
     this.saveDocumentDebounced = debounce(() => {
@@ -107,6 +103,20 @@ export class SupabaseProvider extends EventEmitter {
       .on("broadcast", { event: ChannelEvents.Awareness }, ({ payload }) => {
         this.receiveAwarenessUpdate(Uint8Array.from(payload));
       })
+      .on("presence", { event: "sync" }, () => {
+        const state = this.channel!.presenceState();
+        const alone = Object.keys(state).length <= 1;
+        if (alone !== this.alone) {
+          if (alone) this.logger("Client is alone. Suspending realtime updates.");
+          else this.logger("Client is no longer alone. Resuming realtime updates.");
+        }
+
+        this.alone = alone;
+
+        /* If we're not alone and we received a presence update, then somebody new has joined.
+         * We should send them the current state of the document in case our local changes haven't been saved */
+        if (!this.alone) this.sendResyncUpdate();
+      })
       .subscribe((status, err) => {
         switch (status) {
           case "SUBSCRIBED":
@@ -134,6 +144,7 @@ export class SupabaseProvider extends EventEmitter {
   private channel: RealtimeChannel | null = null;
   private resync: NodeJS.Timeout | undefined;
   private previous: Uint8Array | null = null;
+  private alone: boolean = true;
   private saveDocumentDebounced: () => void;
 
   private onUnloadBound: typeof this.onUnload;
@@ -186,6 +197,16 @@ export class SupabaseProvider extends EventEmitter {
   private async onSubscribed() {
     this.logger("Successfully connected to Realtime channel.");
     await this.loadDocument();
+
+    /*
+     * Track Realtime presence on Supabase channel.
+     * If nobody else has joined the room, then we won't send any messages.
+     */
+    if ((await this.channel!.track({})) !== "ok") {
+      this.logger("Error occured tracking Realtime presence.");
+      return this.destroyInternal(ConnectionStatus.DisconnectedError, new Error("Failed to track Realtime presence"));
+    }
+
     this.logger("Succesfully connected.");
     this._status = ConnectionStatus.Connected;
     this.emit(SupabaseProviderEvents.Status, this, this.status, undefined);
@@ -193,18 +214,23 @@ export class SupabaseProvider extends EventEmitter {
 
   /**
    * Attempts to the load the document remotely from the database.
+   * @returns `true` if loading succeeded, `false` otherwise. Will destroy on failure.
    */
   private async loadDocument() {
-    if (!this.config.loadDocument) return;
+    if (!this.config.loadDocument) return true;
     this.logger("Fetching persistent document data...");
-    
+
     /* Run supplied loading hook, failing if any errors occur */
     try {
       var data = await this.config.loadDocument();
-      if (!data) return this.logger("No persistent data was retrieved.");
+      if (!data) {
+        this.logger("No persistent data was retrieved.");
+        return true;
+      }
     } catch (error: any) {
       this.logger("Error occured while retrieving document data", error);
-      return await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
+      await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
+      return false;
     }
 
     /* Attempt to apply data to document */
@@ -214,15 +240,19 @@ export class SupabaseProvider extends EventEmitter {
       this.previous = Y.encodeStateVector(this.doc);
     } catch (error: any) {
       this.logger("Applying document updates resulted in error", error);
-      return await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
+      await this.destroyInternal(ConnectionStatus.DisconnectedError, error);
+      return false;
     }
-  } 
+
+    return true;
+  }
 
   /**
    * Saves the document remotely to the database.
    * This should be debounced to save on database egress.
    */
   private async saveDocument() {
+    if (!this.config.saveInterval) return;
     if (!this.config.saveDocument) return;
     this.logger("Saving persistent document data...");
     const current = Y.encodeStateAsUpdateV2(this.doc);
@@ -247,23 +277,11 @@ export class SupabaseProvider extends EventEmitter {
    * @param message A YJS document update
    */
   private sendDocumentUpdate(message: Uint8Array) {
+    if (this.alone) return;
     if (this.status === ConnectionStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",
         event: ChannelEvents.Message,
-        payload: Array.from(message),
-      });
-  }
-
-  /**
-   * Sends an awareness update message to peers.
-   * @param message A YJS awareness update
-   */
-  private sendAwarenessUpdate(message: Uint8Array) {
-    if (this.status === ConnectionStatus.Connected && this.channel)
-      this.channel.send({
-        type: "broadcast",
-        event: ChannelEvents.Awareness,
         payload: Array.from(message),
       });
   }
@@ -281,6 +299,20 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   /**
+   * Sends an awareness update message to peers.
+   * @param message A YJS awareness update
+   */
+  private sendAwarenessUpdate(message: Uint8Array) {
+    if (this.alone) return;
+    if (this.status === ConnectionStatus.Connected && this.channel)
+      this.channel.send({
+        type: "broadcast",
+        event: ChannelEvents.Awareness,
+        payload: Array.from(message),
+      });
+  }
+
+  /**
    * Receives an awareness update message from peers and updates the local awareness state.
    * @param message A YJS awareness update.
    */
@@ -290,6 +322,15 @@ export class SupabaseProvider extends EventEmitter {
     } catch (error: any) {
       this.logger("Error applying remote awareness update", error);
     }
+  }
+
+  /**
+   * Sends an update to all peers with the current state of the document.
+   * By calling this periodically, we can avoid peers' local document state from diverging.
+   */
+  private sendResyncUpdate() {
+    const update = Y.encodeStateAsUpdate(this.doc);
+    this.sendDocumentUpdate(update);
   }
 
   private onDocumentUpdate(update: Uint8Array, origin: any) {
