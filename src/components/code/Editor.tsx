@@ -68,7 +68,7 @@ export default function Editor({ room, group, action }: EditorProps) {
     if (roomStatus !== ConnectionStatus.Connected) return;
 
     // Setup ydoc and connection to Supabase
-    const channel = `${room!.code}:${group}`;
+    const channel = `${room.code}:${group}`;
     const supabase = createClient();
     const ydoc = new Y.Doc();
 
@@ -129,16 +129,19 @@ export default function Editor({ room, group, action }: EditorProps) {
   }, [theme.palette.mode]);
 
   /* Update editor language when room language changes or editor loads in */
+  const languageVersion = useRef(0);
   useEffect(() => {
     if (!editorView) return;
+    const version = ++languageVersion.current;
     const cmName = SupportedLanguages.find((info) => info.name === room.language)?.cm;
     const cmLanguage = languages.find((info) => info.name === cmName);
     if (!cmLanguage) return console.log(`Couldn't find language: '${room.language}'`);
-    cmLanguage.load().then((ls) =>
+    cmLanguage.load().then((ls) => {
+      if (languageVersion.current !== version) return; // Optimistic lock language loading
       editorView.dispatch({
         effects: EditorLanguage.reconfigure([ls]),
-      })
-    );
+      });
+    });
   }, [editorView, room.language]);
 
   return (
