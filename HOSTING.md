@@ -28,6 +28,7 @@ create view updates_agg with (security_invoker) as (
 create table rooms (
   code text primary key,
   name text not null,
+  language text not null,
   groups json not null,
   created timestamp not null
 );

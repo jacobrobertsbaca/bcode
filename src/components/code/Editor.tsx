@@ -7,8 +7,7 @@ import createClient from "@/provider/client";
 import * as Y from "yjs";
 import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 import { useRoomState } from "@/state/room";
-import { EditorView, basicSetup } from "codemirror";
-import { cpp } from "@codemirror/lang-cpp";
+import { EditorView } from "codemirror";
 import { yCollab } from "y-codemirror.next";
 import EditorFrame from "./EditorFrame";
 import { ConnectionStatus } from "@/types/Connection";
@@ -16,15 +15,19 @@ import EditorOverlay from "./EditorOverlay";
 import { LiveUser, useUserState } from "@/state/user";
 import EditorOnline from "./EditorOnline";
 import { Compartment, EditorState } from "@codemirror/state";
+import { languages } from "@codemirror/language-data";
 import { light } from "./theme/light";
 import { dark } from "./theme/dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { loadDocument, saveDocument } from "@/app/actions";
-import { Room } from "@/types/Room";
+import type { Room } from "@/types/Room";
+import { SupportedLanguages } from "./languages";
+import { basicSetup } from "./setup";
 
 const kEditorViewId = "code-view";
 const EditorTheme = new Compartment();
+const EditorLanguage = new Compartment();
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
@@ -47,7 +50,7 @@ export default function Editor({ room, group, action }: EditorProps) {
   /** Editor state */
   const user = useUserState((state) => state.user);
   const provider = useRef<SupabaseProvider>();
-  const editorView = useRef<EditorView>();
+  const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
   const editorId = `${kEditorViewId}-${group}`;
 
@@ -91,17 +94,19 @@ export default function Editor({ room, group, action }: EditorProps) {
       if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
     });
 
-    editorView.current = new EditorView({
+    const editor = new EditorView({
       extensions: [
         basicSetup,
         keymap.of([indentWithTab]),
-        cpp(),
         EditorTheme.of(editorTheme),
+        EditorLanguage.of([]),
         // EditorState.readOnly.of(true),
         yCollab(ytext, provider.current.awareness, { undoManager }),
       ],
       parent: parentElem,
     });
+
+    setEditorView(editor);
 
     return () => {
       provider.current?.destroy();
@@ -117,11 +122,24 @@ export default function Editor({ room, group, action }: EditorProps) {
 
   /* Update the editor theme when the MUI theme changes */
   useEffect(() => {
-    if (!editorView.current) return;
-    editorView.current.dispatch({
+    if (!editorView) return;
+    editorView.dispatch({
       effects: EditorTheme.reconfigure(editorTheme),
     });
   }, [theme.palette.mode]);
+
+  /* Update editor language when room language changes or editor loads in */
+  useEffect(() => {
+    if (!editorView) return;
+    const cmName = SupportedLanguages.find((info) => info.name === room.language)?.cm;
+    const cmLanguage = languages.find((info) => info.name === cmName);
+    if (!cmLanguage) return console.log(`Couldn't find language: '${room.language}'`);
+    cmLanguage.load().then((ls) =>
+      editorView.dispatch({
+        effects: EditorLanguage.reconfigure([ls]),
+      })
+    );
+  }, [editorView, room.language]);
 
   return (
     <EditorFrame>

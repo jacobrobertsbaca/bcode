@@ -14,6 +14,7 @@ import { enqueueSnackbar } from "notistack";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoomState } from "@/state/room";
 import { upsertRoom } from "../actions";
+import { SupportedLanguages } from "@/components/code/languages";
 
 type RoomSidebarProps = {
   room: Room;
@@ -93,14 +94,13 @@ export function AddRoomButton() {
       <RoomSidebar
         open={open}
         setOpen={setOpen}
-        room={
-          {
-            code: "",
-            name: "",
-            groups: groupsForCount(1),
-            created: new Date().toISOString(),
-          } as Room
-        }
+        room={{
+          code: "",
+          name: "",
+          language: SupportedLanguages[0].name,
+          groups: groupsForCount(1),
+          created: new Date().toISOString(),
+        }}
       />
       <IconButton onClick={() => setOpen(true)}>
         <SvgIcon>

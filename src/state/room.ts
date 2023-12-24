@@ -1,13 +1,13 @@
 import { create } from "zustand";
-import { Room } from "../types/Room";
-import { RealtimeChannel } from "@supabase/realtime-js";
+import type { Room } from "../types/Room";
+import type { RealtimeChannel } from "@supabase/realtime-js";
 import createClient from "../provider/client";
 import debug from "debug";
 import { ConnectionStatus } from "../types/Connection";
-import { LiveUser, useUserState } from "./user";
+import { type LiveUser, useUserState } from "./user";
 import { enqueueSnackbar } from "notistack";
 import { useEffect } from "react";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 interface RoomMethods {
   join: (room: Room, router: AppRouterInstance) => Promise<void>;
