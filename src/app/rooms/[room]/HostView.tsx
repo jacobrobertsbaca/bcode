@@ -1,6 +1,6 @@
 "use client";
 
-import Editor from "@/components/code/Editor";
+import RoomEditor from "@/components/code/RoomEditor";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoom } from "@/state/room";
 import { useUserState } from "@/state/user";
@@ -23,7 +23,7 @@ export default function HostView({ room }: { room: Room }) {
   return (
     <Stack spacing={4}>
       {room.groups.map((group) => (
-        <Editor key={group.no} room={room} group={group.no} />
+        <RoomEditor key={group.no} room={room} group={group.no} />
       ))}
     </Stack>
   );
