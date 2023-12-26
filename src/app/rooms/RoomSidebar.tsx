@@ -60,7 +60,7 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
       onClose={() => setOpen(false)}
       sx={{ zIndex: 1050 }}
       PaperProps={{
-        sx: { width: { xs: 1, sm: 600 }, border: "none", overflow: "hidden" },
+        sx: { width: { xs: 1, sm: 800 }, border: "none", overflow: "hidden" },
       }}
     >
       <Formik

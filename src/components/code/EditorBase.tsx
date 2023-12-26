@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { light } from "./theme/light";
 import { dark } from "./theme/dark";
 import { basicSetup } from "./setup";
-import { keymap } from "@codemirror/view";
+import { EditorViewConfig, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { SupportedLanguages } from "./languages";
 import { languages } from "@codemirror/language-data";
@@ -16,15 +16,10 @@ import { languages } from "@codemirror/language-data";
  */
 export type EditorConfig = {
   /**
-   * Gets the DOM element that will the parent of the editor.
+   * Called once to initialize the editor state.
+   * @returns The editor config. Base extensions will be included.
    */
-  parent: () => Element;
-
-  /**
-   * Called once to initialize the editor with any user-provided extensions.
-   * @returns An extension object, included in the editor after all base extensions.
-   */
-  onCreate?: () => Extension;
+  onCreate?: () => EditorViewConfig;
 
   /**
    * Called when the editor is being destroyed (when the calling component is unmounted).
@@ -50,23 +45,23 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
   const editorTheme = theme.palette.mode === "light" ? light : dark;
 
   useEffect(() => {
-    const parent = config.parent();
-    const editor = new EditorView({
-      parent,
+    const state = config.onCreate?.() ?? {};
+    const { extensions, ...rest } = state;
+
+    // prettier-ignore
+    setEditorView(new EditorView({
       extensions: [
         basicSetup,
         keymap.of([indentWithTab]),
         EditorTheme.of(editorTheme),
-        EditorLanguage.of([]),
-        config.onCreate?.() ?? [],
-      ],
-    });
-
-    setEditorView(editor);
+        EditorLanguage.of([])
+      ].concat(extensions ?? []),
+      ...rest,
+    }));
 
     return () => {
       config.onDestroy?.();
-      parent.replaceChildren();
+      state?.parent?.replaceChildren();
       setEditorView(undefined);
     };
   }, []);
@@ -90,7 +85,7 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
     const cmName = SupportedLanguages.find((info) => info.name === config.language)?.cm;
     const cmLanguage = languages.find((info) => info.name === cmName);
     if (!cmLanguage) throw new Error(`Couldn't find language: '${config.language}'`);
-    
+
     /* Load in language asynchronously */
     cmLanguage.load().then((ls) => {
       if (languageVersion.current !== version) return; // Optimistic lock language loading
@@ -105,15 +100,16 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
 
 export type EditorStylesProps = Omit<BoxProps, "sx"> & {
   paddingTop?: string | number;
+  minHeight?: string | number;
 };
 
-export function EditorStyles({ paddingTop, ...rest }: EditorStylesProps) {
+export function EditorStyles({ paddingTop, minHeight: height, ...rest }: EditorStylesProps) {
   const theme = useTheme();
   return (
     <Box
       sx={{
         ".cm-content": { paddingTop: paddingTop },
-        ".cm-content, .cm-gutter": { minHeight: "400px" },
+        ".cm-content, .cm-gutter": { minHeight: height ?? "400px" },
         ".cm-gutters": { borderRight: `1px solid ${theme.palette.divider}` },
         ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
         ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily },

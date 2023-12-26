@@ -10,6 +10,7 @@ import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
 import { SupportedLanguages } from "@/components/code/languages";
+import ControlledEditor from "@/components/code/ControlledEditor";
 
 function maskCodeInput(code: string): string {
   return code
@@ -110,25 +111,13 @@ export default function RoomSidebarInput() {
           }}
         />
       </Tooltip>
-      <Tooltip
-        placement={placement}
-        arrow
-        title={
-          <Typography variant="inherit" component="ul" px="24px" py="8px">
-            <Typography variant="inherit" component="li">
-              This language will be used for code highlighting.
-            </Typography>
-          </Typography>
-        }
-      >
-        <FormikTextField select name="language" label="Language">
-          {SupportedLanguages.map((sl) => (
-            <MenuItem key={sl.name} value={sl.name}>
-              {sl.label ?? sl.cm}
-            </MenuItem>
-          ))}
-        </FormikTextField>
-      </Tooltip>
+      <FormikTextField select name="language" label="Language">
+        {SupportedLanguages.map((sl) => (
+          <MenuItem key={sl.name} value={sl.name}>
+            {sl.label ?? sl.cm}
+          </MenuItem>
+        ))}
+      </FormikTextField>
       <Typography variant="subtitle2">Groups</Typography>
       <Tooltip
         placement={placement}
@@ -157,6 +146,31 @@ export default function RoomSidebarInput() {
             marks
             value={formik.values.groups.length}
             onChange={(_, v) => formik.setFieldValue("groups", groupsForCount(v as number))}
+          />
+        </Box>
+      </Tooltip>
+      <Tooltip
+        placement={placement}
+        arrow
+        title={
+          <Typography variant="inherit" component="ul" px="24px" py="8px">
+            <Typography variant="inherit" component="li">
+              Each group will default to this starter code (optional).
+            </Typography>
+            <Typography variant="inherit" component="li">
+              Changing this won't affect groups after they've been created.
+            </Typography>
+          </Typography>
+        }
+      >
+        <Box>
+          <ControlledEditor
+            placeholder="Starter code goes here..."
+            language={formik.values.language}
+            value="hello world!"
+            onChange={(v) => {
+              console.log(v);
+            }}
           />
         </Box>
       </Tooltip>

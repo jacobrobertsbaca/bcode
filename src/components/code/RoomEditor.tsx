@@ -39,7 +39,6 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const editorId = `${kEditorViewId}-${channel}`;
 
   useEditor({
-    parent: () => document.getElementById(editorId)!,
     language: room.language,
 
     onCreate() {
@@ -69,7 +68,10 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
       });
 
-      return yCollab(ytext, provider.current.awareness, { undoManager });
+      return {
+        parent: document.getElementById(editorId)!,
+        extensions: yCollab(ytext, provider.current.awareness, { undoManager }),
+      };
     },
 
     onDestroy() {
