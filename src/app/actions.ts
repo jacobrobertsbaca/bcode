@@ -166,7 +166,7 @@ export async function loadDocument(channel: string): Promise<number[] | null> {
 export async function getRooms(code?: string) {
   try {
     const supabase = createServer();
-    let query = supabase.from(Tables.Rooms).select("code, name, groups, created").throwOnError();
+    let query = supabase.from(Tables.Rooms).select("code, name, language, groups, created").throwOnError();
     if (code !== undefined) query = query.eq("code", code);
     else {
       /* Get current user */

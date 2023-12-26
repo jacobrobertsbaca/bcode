@@ -1,19 +1,38 @@
 "use client";
 
 import { Room, RoomSchema, RoomSchemaNew, groupsForCount } from "@/types/Room";
-import { Divider, Drawer, IconButton, Stack, SvgIcon, Typography } from "@mui/material";
+import { Box, Divider, Drawer, IconButton, Stack, SvgIcon, Typography, styled } from "@mui/material";
 import { Formik } from "formik";
-import React from "react";
+import React, { Ref, forwardRef, useRef, useState } from "react";
 
 import PlusIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import RoomSidebarInput from "./RoomSidebarInput";
-import createClient from "@/provider/client";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoomState } from "@/state/room";
 import { upsertRoom } from "../actions";
+import { SupportedLanguages } from "@/components/code/languages";
+
+import SimpleBarCore from "simplebar-core";
+import SimpleBar from "simplebar-react";
+import 'simplebar-react/dist/simplebar.min.css';
+
+const StyledSimpleBar = styled(SimpleBar)``;
+const Form = styled("form")({
+  display: "flex",
+  flexDirection: "column",
+  height: "100%"
+});
+
+const Scrollbar = forwardRef(({ children }: { children: React.ReactNode }, ref: Ref<SimpleBarCore | null>) => (
+  <Box sx={{ width: "100%", flexGrow: 1, overflow: "hidden" }}>
+    <StyledSimpleBar sx={{ maxHeight: "100%" }} ref={ref}>
+      {children}
+    </StyledSimpleBar>
+  </Box>
+));
 
 type RoomSidebarProps = {
   room: Room;
@@ -23,9 +42,16 @@ type RoomSidebarProps = {
 
 export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
   const exists = !!room.code;
-  const supabase = createClient();
   const router = useRouter();
   const updatePeers = useRoomState((state) => state.update);
+  const [scrolled, setScrolled] = useState(false);
+
+  /* Show a shadow on header when user scrolls */
+  function onScrollMounted(bar: SimpleBarCore | null) {
+    const scrollEl = bar?.getScrollElement();
+    const scrollHandler = () => setScrolled((scrollEl?.scrollTop ?? 0) > 15);
+    scrollEl?.addEventListener('scroll', scrollHandler);
+  }
 
   return (
     <Drawer
@@ -66,8 +92,18 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
         }}
       >
         {(props) => (
-          <form onSubmit={props.handleSubmit}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 2 }}>
+          <Form onSubmit={props.handleSubmit}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{
+                px: 1,
+                py: 2,
+                transition: "box-shadow 250ms",
+                boxShadow: scrolled ? "0 2px 6px rgba(0, 0, 0, 0.20)" : undefined,
+              }}
+            >
               <Typography variant="subtitle1" sx={{ ml: 1 }}>
                 {exists ? "Edit Room" : "Create Room"}
               </Typography>
@@ -78,8 +114,10 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
               </IconButton>
             </Stack>
             <Divider />
-            <RoomSidebarInput />
-          </form>
+            <Scrollbar ref={onScrollMounted}>
+              <RoomSidebarInput />
+            </Scrollbar>
+          </Form>
         )}
       </Formik>
     </Drawer>
@@ -93,14 +131,13 @@ export function AddRoomButton() {
       <RoomSidebar
         open={open}
         setOpen={setOpen}
-        room={
-          {
-            code: "",
-            name: "",
-            groups: groupsForCount(1),
-            created: new Date().toISOString(),
-          } as Room
-        }
+        room={{
+          code: "",
+          name: "",
+          language: SupportedLanguages[0].name,
+          groups: groupsForCount(1),
+          created: new Date().toISOString(),
+        }}
       />
       <IconButton onClick={() => setOpen(true)}>
         <SvgIcon>

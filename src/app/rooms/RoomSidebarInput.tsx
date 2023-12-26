@@ -4,11 +4,12 @@ import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
 import { Room, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
-import { Box, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, MenuItem, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
+import { SupportedLanguages } from "@/components/code/languages";
 
 function maskCodeInput(code: string): string {
   return code
@@ -88,7 +89,7 @@ export default function RoomSidebarInput() {
             )}
             {exists && (
               <Typography variant="inherit" component="li">
-                Cannot be changed once the room has been created.
+                Cannot be changed after the room has been created.
               </Typography>
             )}
           </Typography>
@@ -108,6 +109,25 @@ export default function RoomSidebarInput() {
             formik.handleChange(event);
           }}
         />
+      </Tooltip>
+      <Tooltip
+        placement={placement}
+        arrow
+        title={
+          <Typography variant="inherit" component="ul" px="24px" py="8px">
+            <Typography variant="inherit" component="li">
+              This language will be used for code highlighting.
+            </Typography>
+          </Typography>
+        }
+      >
+        <FormikTextField select name="language" label="Language">
+          {SupportedLanguages.map((sl) => (
+            <MenuItem key={sl.name} value={sl.name}>
+              {sl.label ?? sl.cm}
+            </MenuItem>
+          ))}
+        </FormikTextField>
       </Tooltip>
       <Typography variant="subtitle2">Groups</Typography>
       <Tooltip

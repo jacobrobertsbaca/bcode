@@ -1,7 +1,7 @@
 "use client";
 
 import FormikTextField from "@/components/FormikTextField";
-import Editor from "@/components/code/Editor";
+import RoomEditor from "@/components/code/RoomEditor";
 import EditorFrame from "@/components/code/EditorFrame";
 import EditorOnline from "@/components/code/EditorOnline";
 import { OverlayAlert, OverlayBlur } from "@/components/code/EditorOverlay";
@@ -174,7 +174,7 @@ function GuestViewSelector({ room, view, setView }: GuestViewSelectorProps) {
   if (view === GuestViewStatus.Room) {
     if (group === 0) return <ChooseGroupView room={room} />;
     return (
-      <Editor
+      <RoomEditor
         room={room}
         group={group}
         action={
