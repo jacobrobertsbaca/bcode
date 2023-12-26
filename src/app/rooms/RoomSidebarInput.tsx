@@ -89,7 +89,7 @@ export default function RoomSidebarInput() {
             )}
             {exists && (
               <Typography variant="inherit" component="li">
-                Cannot be changed once the room has been created.
+                Cannot be changed after the room has been created.
               </Typography>
             )}
           </Typography>
@@ -116,7 +116,7 @@ export default function RoomSidebarInput() {
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
-              This is the language that will be used for syntax highlighting.
+              This language will be used for code highlighting.
             </Typography>
           </Typography>
         }

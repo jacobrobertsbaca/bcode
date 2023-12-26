@@ -25,13 +25,13 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   });
 }
 
-type EditorProps = {
+type RoomEditorProps = {
   room: Room;
   group: number;
   action?: React.ReactNode;
 };
 
-export default function RoomEditor({ room, group, action }: EditorProps) {
+export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const user = useUserState((state) => state.user);
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);

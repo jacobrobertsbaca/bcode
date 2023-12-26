@@ -56,7 +56,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 |Variable|Meaning|
 |----|----|
 `NEXT_PUBLIC_SUPABASE_URL` | The Supabase project's URL ([see dashboard](https://supabase.com/dashboard/project/_/settings/api))
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's anonymous key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Used in browser, will be exposed to clients.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` | The project's `anon` key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Used in browser, will be exposed to clients.
 `SUPABASE_SERVER_KEY` | The project's `service_role` key ([see dashboard](https://supabase.com/dashboard/project/_/settings/api)). Only used server-side, will not be exposed to clients.
 `NEXT_PUBLIC_SITE_URL` | The website URL (no trailing slashes). Used to generate QR code links.
 
