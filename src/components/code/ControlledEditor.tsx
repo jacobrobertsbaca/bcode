@@ -1,11 +1,12 @@
 import { v4 } from "uuid";
 import { EditorStyles, useEditor } from "./EditorBase";
-import EditorFrame from "./EditorFrame";
+import EditorFrame, { type EditorFrameProps } from "./EditorFrame";
 import { useState } from "react";
 import { EditorView } from "codemirror";
 import { placeholder } from "@codemirror/view";
 
-type ControlledEditorProps = {
+type ControlledEditorProps = EditorFrameProps & {
+  minHeight?: string | number;
   placeholder?: string;
   language?: string;
   value: string;
@@ -30,8 +31,13 @@ export default function ControlledEditor(props: ControlledEditorProps) {
   });
 
   return (
-    <EditorFrame sx={{ minHeight: 100 }} onMouseEnter={() => console.log("ENTER")}>
-      <EditorStyles id={editorId} minHeight={100} />
+    <EditorFrame sx={{ minHeight: props.minHeight }}>
+      <EditorStyles
+        id={editorId}
+        editorSx={{
+          ".cm-gutters": { minHeight: `${props.minHeight} !important` },
+        }}
+      />
     </EditorFrame>
   );
 }

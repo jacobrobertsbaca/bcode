@@ -1,5 +1,6 @@
-import { Compartment, Extension } from "@codemirror/state";
-import { Box, BoxProps, SxProps, Theme, useTheme } from "@mui/material";
+import { Compartment } from "@codemirror/state";
+import { Box, BoxProps, Theme, useTheme } from "@mui/material";
+import { CSSSelectorObjectOrCssVariables } from "@mui/system";
 import { jakarta } from "../ThemeRegistry/fonts";
 import { EditorView } from "codemirror";
 import { useEffect, useRef, useState } from "react";
@@ -99,17 +100,18 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
 }
 
 export type EditorStylesProps = Omit<BoxProps, "sx"> & {
-  paddingTop?: string | number;
-  minHeight?: string | number;
+  /**
+   * Styles applied to the CodeMirror editor element (`.cm-editor`).
+   */
+  editorSx?: CSSSelectorObjectOrCssVariables<Theme>[".cm-editor"];
 };
 
-export function EditorStyles({ paddingTop, minHeight: height, ...rest }: EditorStylesProps) {
+export function EditorStyles({ editorSx, ...rest }: EditorStylesProps) {
   const theme = useTheme();
   return (
     <Box
       sx={{
-        ".cm-content": { paddingTop: paddingTop },
-        ".cm-content, .cm-gutter": { minHeight: height ?? "400px" },
+        ".cm-editor": editorSx ?? {},
         ".cm-gutters": { borderRight: `1px solid ${theme.palette.divider}` },
         ".cm-lineNumbers > .cm-gutterElement": { pl: "20px" },
         ".cm-ySelectionInfo": { fontFamily: jakarta.style.fontFamily },

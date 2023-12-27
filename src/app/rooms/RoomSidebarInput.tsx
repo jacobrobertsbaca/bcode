@@ -155,7 +155,7 @@ export default function RoomSidebarInput() {
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
-              Each group will default to this starter code (optional).
+              Each group will begin with this starter code (optional).
             </Typography>
             <Typography variant="inherit" component="li">
               Changing this won't affect groups after they've been created.
@@ -165,12 +165,13 @@ export default function RoomSidebarInput() {
       >
         <Box>
           <ControlledEditor
-            placeholder="Starter code goes here..."
+            placeholder="Add starter code here"
             language={formik.values.language}
             value="hello world!"
             onChange={(v) => {
               console.log(v);
             }}
+            minHeight="150px"
           />
         </Box>
       </Tooltip>

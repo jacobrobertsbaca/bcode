@@ -6,7 +6,7 @@ import createClient from "@/provider/client";
 import * as Y from "yjs";
 import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 import { yCollab } from "y-codemirror.next";
-import EditorFrame from "./EditorFrame";
+import EditorFrame, { EditorFrameProps } from "./EditorFrame";
 import { ConnectionStatus } from "@/types/Connection";
 import EditorOverlay from "./EditorOverlay";
 import { LiveUser, useUserState } from "@/state/user";
@@ -16,6 +16,8 @@ import type { Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
 
 const kEditorViewId = "code-view";
+const kEditorHeightPx = 400;
+const kEditorHeaderHeightPx = 64;
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
@@ -25,7 +27,7 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   });
 }
 
-type RoomEditorProps = {
+type RoomEditorProps = EditorFrameProps & {
   room: Room;
   group: number;
   action?: React.ReactNode;
@@ -87,7 +89,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   }, [user]);
 
   return (
-    <EditorFrame>
+    <EditorFrame sx={{ minHeight: kEditorHeightPx }}>
       <CardHeader
         title={room?.groups.find((g) => g.no === group)?.name ?? ""}
         titleTypographyProps={{ variant: "h6", fontWeight: 400 }}
@@ -101,7 +103,17 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
           "& .MuiCardHeader-action": { margin: 0, alignSelf: "center" },
         }}
       />
-      <EditorStyles paddingTop="22px" id={editorId} />
+      <EditorStyles
+        id={editorId}
+        editorSx={{
+          ".cm-content": {
+            paddingTop: "22px", // So others' cursor tooltips not occluded by CM editor
+          },
+          ".cm-gutters": {
+            minHeight: `${kEditorHeightPx - kEditorHeaderHeightPx}px !important`, // Stop layout shift on load
+          },
+        }}
+      />
       <EditorOverlay editorStatus={providerStatus} />
     </EditorFrame>
   );
