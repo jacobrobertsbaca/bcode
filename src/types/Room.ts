@@ -24,6 +24,10 @@ export const RoomSchema = z.object({
   code: CodeSchema,
   name: z.string().trim().min(1, "Can't be empty").max(60, "Can't be more than 60 characters"),
   language: z.enum(SupportedLanguages.map((l) => l.name) as [(typeof SupportedLanguages)[number]["name"]]),
+  starterCode: z
+    .string()
+    .optional()
+    .transform((s) => s ?? ""),  // Necessary to allow Formik to have empty string
   groups: RoomGroupSchema.array()
     .min(1, "You must have at least one group!")
     .max(8, "For performance reasons, you can't have more than 8 groups")

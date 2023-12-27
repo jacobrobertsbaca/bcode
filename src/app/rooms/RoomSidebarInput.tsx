@@ -10,7 +10,7 @@ import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
 import { SupportedLanguages } from "@/components/code/languages";
-import ControlledEditor from "@/components/code/ControlledEditor";
+import FormikEditor from "@/components/code/FormikEditor";
 
 function maskCodeInput(code: string): string {
   return code
@@ -164,12 +164,12 @@ export default function RoomSidebarInput() {
         }
       >
         <Box>
-          <ControlledEditor
+          <FormikEditor
             placeholder="Add starter code here"
             language={formik.values.language}
-            value="hello world!"
-            onChange={(v) => {}}
             minHeight="150px"
+            name="starterCode"
+            max={1000}
           />
         </Box>
       </Tooltip>

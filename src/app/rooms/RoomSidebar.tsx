@@ -135,6 +135,7 @@ export function AddRoomButton() {
           code: "",
           name: "",
           language: SupportedLanguages[0].name,
+          starterCode: "",
           groups: groupsForCount(1),
           created: new Date().toISOString(),
         }}
