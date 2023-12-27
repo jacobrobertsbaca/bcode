@@ -1,4 +1,4 @@
-import { Compartment } from "@codemirror/state";
+import { Annotation, Compartment, EditorState, Extension, Transaction, TransactionSpec } from "@codemirror/state";
 import { Box, BoxProps, Theme, useTheme } from "@mui/material";
 import { CSSSelectorObjectOrCssVariables } from "@mui/system";
 import { jakarta } from "../ThemeRegistry/fonts";
@@ -11,6 +11,7 @@ import { EditorViewConfig, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { SupportedLanguages } from "./languages";
 import { languages } from "@codemirror/language-data";
+import { YSyncConfig } from "y-codemirror.next";
 
 /**
  * Options for creating an interactive editor.
@@ -33,10 +34,66 @@ export type EditorConfig = {
    * If `undefined`, syntax highlighting will be disabled.
    */
   language?: string;
+
+  /**
+   * Maximum number of characters allowed to be entered into the editor.
+   */
+  max?: number;
 };
 
 const EditorTheme = new Compartment();
 const EditorLanguage = new Compartment();
+
+/**
+ * Checks if a transaction is remote.
+ * @param tr A {@link Transaction} to check
+ * @returns Whether or not the transaction originated from YJS and is therefore remote.
+ *
+ * @remarks This function is kind of a hack because it directly inspects a Transaction's annotations.
+ * Once this PR is merged (https://github.com/yjs/y-codemirror.next/pull/30), should be able to
+ * check this directly using `tr.annotation(ySyncAnnotation)`.
+ */
+function isRemote(tr: Transaction): boolean {
+  const spec = tr as TransactionSpec;
+  const annotations = spec.annotations;
+  if (!annotations) return false;
+  if (annotations instanceof Annotation) return annotations.value instanceof YSyncConfig;
+  return annotations.some((a) => a.value instanceof YSyncConfig);
+}
+
+function maxLength(max?: number): Extension {
+  if (max === undefined) return [];
+  return EditorState.transactionFilter.of((tr) => {
+    if (!tr.docChanged) return tr;
+    if (isRemote(tr)) return tr; // Ignore remote updates
+    if (tr.newDoc.length <= max) return tr;
+
+    /* Get changed ranges, sorted from latest to earliest in the document */
+    const ranges: [from: number, to: number][] = [];
+    tr.changes.iterChangedRanges((_, __, from, to) => ranges.push([from, to]));
+    ranges.sort((a, b) => b[0] - a[0]);
+
+    /* Remove characters from the end of ranges (starting with latest ranges first)
+     * until the document has exactly `max` characters */
+    const supressed: [from: number, to: number][] = [];
+    let length = tr.newDoc.length;
+    for (let i = 0; i < ranges.length && length > max; i++) {
+      const [from, to] = ranges[i];
+      if (from === to) continue;
+      const n = Math.min(length - max, to - from);
+      supressed.push([to - n, to]);
+      length -= n;
+    }
+
+    return [
+      tr,
+      ...supressed.map(([from, to]) => ({
+        changes: { from, to },
+        sequential: true,
+      })),
+    ];
+  });
+}
 
 export function useEditor(config: EditorConfig): EditorView | undefined {
   const [editorView, setEditorView] = useState<EditorView>();
@@ -50,15 +107,18 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
     const { extensions, ...rest } = state;
 
     // prettier-ignore
-    setEditorView(new EditorView({
-      extensions: [
-        basicSetup,
-        keymap.of([indentWithTab]),
-        EditorTheme.of(editorTheme),
-        EditorLanguage.of([])
-      ].concat(extensions ?? []),
-      ...rest,
-    }));
+    setEditorView(
+      new EditorView({
+        extensions: [
+          basicSetup,
+          keymap.of([indentWithTab]),
+          EditorTheme.of(editorTheme),
+          EditorLanguage.of([]),
+          maxLength(config.max),
+        ].concat(extensions ?? []),
+        ...rest,
+      })
+    );
 
     return () => {
       config.onDestroy?.();

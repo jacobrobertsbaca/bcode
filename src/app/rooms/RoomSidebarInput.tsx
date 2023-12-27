@@ -168,9 +168,7 @@ export default function RoomSidebarInput() {
             placeholder="Add starter code here"
             language={formik.values.language}
             value="hello world!"
-            onChange={(v) => {
-              console.log(v);
-            }}
+            onChange={(v) => {}}
             minHeight="150px"
           />
         </Box>

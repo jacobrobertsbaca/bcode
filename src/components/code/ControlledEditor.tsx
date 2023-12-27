@@ -18,6 +18,7 @@ export default function ControlledEditor(props: ControlledEditorProps) {
 
   useEditor({
     language: props.language,
+    max: 5,
     onCreate: () => ({
       doc: props.value,
       parent: document.getElementById(editorId)!,
