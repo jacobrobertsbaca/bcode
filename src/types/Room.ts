@@ -94,3 +94,17 @@ export function channelString(room: Room | string, group: RoomGroup | number) {
   if (typeof group === "object") group = group.no;
   return `${room}:${group}`;
 }
+
+export function parseChannelString(channel: string): [code: string, group: number] {
+  const pattern = /^([a-zA-Z0-9-]+):([0-9]+)$/;
+  const match = pattern.exec(channel);
+  if (!match) throw new Error("Invalid channel string");
+  const code = match[1];
+  const group = parseInt(match[2], 10);
+  return [code, group];
+}
+
+export function channelMask(room: Room | string) {
+  if (typeof room === "object") room = room.code;
+  return `${room}:%`;
+}

@@ -12,7 +12,7 @@
  */
 
 import createServer from "@/provider/server";
-import { Room, RoomGroup, RoomSchema, channelString } from "@/types/Room";
+import { Room, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
 import { differenceBy } from "lodash";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
@@ -103,17 +103,9 @@ function decodeBytes(encoded: string): Buffer {
 export async function saveDocument(channel: string, update: number[]): Promise<void> {
   /* When saving to a channel, we need to ensure that the associated room exists
    * and has the specified group number.
-   *
-   * All channel names have the format {ROOM}:{GROUP}.
    */
 
-  const pattern = /^([a-zA-Z0-9-]+):([0-9]+)$/;
-  const match = pattern.exec(channel);
-  if (!match) throw new Error("Invalid channel string");
-
-  const code = match[1];
-  const group = parseInt(match[2], 10);
-
+  const [code, group] = parseChannelString(channel);
   const { data: room, error } = await getRoom(code);
   if (error) throw new Error(error.message);
   if (!room) throw new Error("No such room");
@@ -232,23 +224,26 @@ export async function roomExists(code: string, owner?: string) {
 }
 
 async function updateStarterCode({ starter_code = "", groups = [] }: Partial<Room>, room: Room) {
-  if (starter_code === room.starter_code) return;
-  const newGroups = differenceBy(room.groups, groups, (g) => g.no);
+  const changed = starter_code !== room.starter_code;
+
+  /* Clear all code for existing rooms if starter code changes */
+  if (changed) {
+    const supabase = createServer();
+    await supabase.from(Tables.Updates).delete().like("channel", channelMask(room)).throwOnError();
+  }
 
   /* Generate YJS update blob for starter code */
   const ydoc = new Doc();
   ydoc.getText("codemirror").insert(0, room.starter_code);
-  const snapshot = Array.from(encodeStateAsUpdateV2(ydoc));
+  const update = Array.from(encodeStateAsUpdateV2(ydoc));
+
+  /* Determine which groups need to be updated.
+   *  - If starter code changes, all groups must be updated.
+   *  - Otherwise, only the new groups not present before need to be */
+  const needsUpdate = changed ? room.groups : differenceBy(room.groups, groups, (g) => g.no);
 
   /* Save all updated groups concurrently */
-  async function updateGroup(group: RoomGroup) {
-    const channel = channelString(room, group);
-    const state = await loadDocument(channel);
-    if (state) return;
-    await saveDocument(channel, snapshot);
-  }
-
-  await Promise.all(newGroups.map((g) => updateGroup(g)));
+  await Promise.all(needsUpdate.map((g) => saveDocument(channelString(room, g), update)));
 }
 
 /**
@@ -324,7 +319,7 @@ export async function deleteRoom(code: string) {
     /* Delete the associated room row and code */
     await Promise.all([
       supabase.from(Tables.Rooms).delete().eq("code", code).throwOnError(),
-      supabase.from(Tables.Updates).delete().like("channel", `${code}:%`).throwOnError(),
+      supabase.from(Tables.Updates).delete().like("channel", channelMask(code)).throwOnError(),
     ]);
 
     revalidatePath("/rooms");

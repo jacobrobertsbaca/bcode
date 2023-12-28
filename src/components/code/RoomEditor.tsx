@@ -14,6 +14,7 @@ import EditorOnline from "./EditorOnline";
 import { loadDocument, saveDocument } from "@/app/actions";
 import { channelString, type Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
+import { enqueueSnackbar } from "notistack";
 
 const kEditorMaxChars = 2000;
 const kEditorViewId = "code-view";
@@ -41,7 +42,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
 
-  useEditor({
+  const { reloadEditor } = useEditor({
     language: room.language,
     max: kEditorMaxChars,
 
@@ -89,6 +90,15 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     if (provider.current.status !== ConnectionStatus.Connected) return;
     updateProviderUser(provider.current, user);
   }, [user]);
+
+  /* Update the document state to the starter code when the starter code changes */
+  const starterCode = useRef(room.starter_code);
+  useEffect(() => {
+    if (room.starter_code === starterCode.current) return;
+    starterCode.current = room.starter_code;
+    reloadEditor();
+    if (!user.isHost) enqueueSnackbar("The host updated the starter code.");
+  }, [room.starter_code]);
 
   return (
     <EditorFrame sx={{ minHeight: kEditorHeightPx }}>

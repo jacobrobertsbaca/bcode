@@ -41,6 +41,18 @@ export type EditorConfig = {
   max?: number;
 };
 
+export type EditorHookState = {
+  /**
+   * The editor view. `undefined` while editor is loading.
+   */
+  editor?: EditorView;
+
+  /**
+   * Reloads the editor.
+   */
+  reloadEditor: () => void;
+};
+
 const EditorTheme = new Compartment();
 const EditorLanguage = new Compartment();
 
@@ -95,8 +107,9 @@ function maxLength(max?: number): Extension {
   });
 }
 
-export function useEditor(config: EditorConfig): EditorView | undefined {
+export function useEditor(config: EditorConfig): EditorHookState {
   const [editorView, setEditorView] = useState<EditorView>();
+  const [counter, setCounter] = useState(0);
 
   /* Theme */
   const theme = useTheme();
@@ -125,7 +138,7 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
       state?.parent?.replaceChildren();
       setEditorView(undefined);
     };
-  }, []);
+  }, [counter]);
 
   /* Update the editor theme when the MUI theme changes */
   useEffect(() => {
@@ -156,7 +169,10 @@ export function useEditor(config: EditorConfig): EditorView | undefined {
     });
   }, [editorView, config.language]);
 
-  return editorView;
+  return {
+    editor: editorView,
+    reloadEditor: () => setCounter((s) => s + 1),
+  };
 }
 
 export type EditorStylesProps = Omit<BoxProps, "sx"> & {

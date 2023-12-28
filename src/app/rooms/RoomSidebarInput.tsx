@@ -4,7 +4,18 @@ import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
 import { MaxStarterCodeLength, Room, SupportedLanguages, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
-import { Box, MenuItem, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Collapse,
+  MenuItem,
+  Slider,
+  Stack,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { useFormikContext } from "formik";
 import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
@@ -156,9 +167,11 @@ export default function RoomSidebarInput() {
             <Typography variant="inherit" component="li">
               Each group will begin with this starter code (optional).
             </Typography>
-            <Typography variant="inherit" component="li">
-              Changing this won't affect groups after they've been created.
-            </Typography>
+            {exists && (
+              <Typography variant="inherit" component="li" fontWeight={600}>
+                Changing this will overwrite any existing code!
+              </Typography>
+            )}
           </Typography>
         }
       >
@@ -172,6 +185,18 @@ export default function RoomSidebarInput() {
           />
         </Box>
       </Tooltip>
+      <Collapse
+        in={exists && formik.initialValues.starter_code !== formik.values.starter_code}
+        sx={{ mt: "0 !important", ".MuiCollapse-wrapperInner": { mt: 2 } }}
+      >
+        <Alert severity="warning">
+          Changing the starter code will{" "}
+          <Typography display="inline" variant="inherit" fontWeight={600}>
+            permanently overwrite
+          </Typography>{" "}
+          any code that has been written for this room.
+        </Alert>
+      </Collapse>
       <LoadingButton
         variant="outlined"
         size="large"
