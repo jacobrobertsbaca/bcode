@@ -12,7 +12,7 @@ import EditorOverlay from "./EditorOverlay";
 import { LiveUser, useUserState } from "@/state/user";
 import EditorOnline from "./EditorOnline";
 import { loadDocument, saveDocument } from "@/app/actions";
-import type { Room } from "@/types/Room";
+import { channelString, type Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
 
 const kEditorMaxChars = 2000;
@@ -38,7 +38,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const user = useUserState((state) => state.user);
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
-  const channel = `${room.code}:${group}`;
+  const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
 
   useEditor({

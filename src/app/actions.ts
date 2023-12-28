@@ -12,10 +12,11 @@
  */
 
 import createServer from "@/provider/server";
-import { Room, RoomSchema } from "@/types/Room";
+import { Room, RoomGroup, RoomSchema, channelString } from "@/types/Room";
+import { differenceBy } from "lodash";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
-import { decodeUpdateV2, mergeUpdatesV2 } from "yjs";
+import { decodeUpdateV2, mergeUpdatesV2, Doc, encodeStateAsUpdateV2 } from "yjs";
 
 /*
  * ============================================================================
@@ -230,6 +231,26 @@ export async function roomExists(code: string, owner?: string) {
   }
 }
 
+async function updateStarterCode({ starter_code = "", groups = [] }: Partial<Room>, room: Room) {
+  if (starter_code === room.starter_code) return;
+  const newGroups = differenceBy(room.groups, groups, (g) => g.no);
+
+  /* Generate YJS update blob for starter code */
+  const ydoc = new Doc();
+  ydoc.getText("codemirror").insert(0, room.starter_code);
+  const snapshot = Array.from(encodeStateAsUpdateV2(ydoc));
+
+  /* Save all updated groups concurrently */
+  async function updateGroup(group: RoomGroup) {
+    const channel = channelString(room, group);
+    const state = await loadDocument(channel);
+    if (state) return;
+    await saveDocument(channel, snapshot);
+  }
+
+  await Promise.all(newGroups.map((g) => updateGroup(g)));
+}
+
 /**
  * Upserts a room.
  * @param room The room object
@@ -252,7 +273,7 @@ export async function upsertRoom(room: Room) {
     /* Get existing room with this code, if any */
     const { data: existing } = await supabase
       .from(Tables.Rooms)
-      .select("owner, created, groups")
+      .select("owner, starter_code, created, groups")
       .eq("code", room.code)
       .maybeSingle()
       .throwOnError();
@@ -265,6 +286,9 @@ export async function upsertRoom(room: Room) {
     row.created = existing ? existing.created : new Date().toISOString();
     if (existing) await supabase.from(Tables.Rooms).update(row).eq("code", room.code).throwOnError();
     else await supabase.from(Tables.Rooms).insert(row).throwOnError();
+
+    /* Update room starter code */
+    await updateStarterCode(existing ?? {}, room);
 
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.code}`);

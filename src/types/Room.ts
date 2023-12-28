@@ -88,3 +88,9 @@ export function groupsForCount(count: number): RoomGroup[] {
     name: `Group ${g + 1}`,
   }));
 }
+
+export function channelString(room: Room | string, group: RoomGroup | number) {
+  if (typeof room === "object") room = room.code;
+  if (typeof group === "object") group = group.no;
+  return `${room}:${group}`;
+}
