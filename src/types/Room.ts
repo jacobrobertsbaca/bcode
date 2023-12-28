@@ -1,11 +1,47 @@
 import { roomExists } from "@/app/actions";
-import { SupportedLanguages } from "@/components/code/languages";
 import { z } from "zod";
+
+export type LanguageInfo = {
+  /** The internal name of the language as it appears in the database. */
+  name: string,
+
+  /** Must match the CodeMirror `name` property.
+   * See [this file](https://github.com/codemirror/language-data/blob/main/src/language-data.ts) for a
+   * list of supported languages. */
+  cm: string,
+
+  /**
+   * The name of the language as it appears in the UI. If undefined, will use {@link cm} instead.
+   */
+  label?: string
+}
+
+/**
+ * Languages supported by the app. Syntax highlighting for languages will be dynamically 
+ * loaded to conserve on bundle size. 
+ * 
+ * @remarks The first language listed will be the default selection when creating a room.
+ */
+export const SupportedLanguages: readonly LanguageInfo[] = Object.freeze([
+  {
+    name: "cpp",
+    cm: "C++",
+  },
+  {
+    name: "python",
+    cm: "Python",
+  },
+]);
 
 /**
  * These can't be used as codes because existing routes would shadow them
  */
-const DisallowedCodes = ["rooms"];
+const DisallowedCodes = Object.freeze(["rooms"]);
+
+/**
+ * Maximum allowed length of starter code in characters
+ */
+export const MaxStarterCodeLength = 1000;
 
 export const RoomGroupSchema = z.object({
   no: z.number().int().positive(),
@@ -23,9 +59,10 @@ const CodeSchema = z
 export const RoomSchema = z.object({
   code: CodeSchema,
   name: z.string().trim().min(1, "Can't be empty").max(60, "Can't be more than 60 characters"),
-  language: z.enum(SupportedLanguages.map((l) => l.name) as [(typeof SupportedLanguages)[number]["name"]]),
-  starterCode: z
+  language: z.enum(SupportedLanguages.map((l) => l.name) as [string]),
+  starter_code: z
     .string()
+    .max(MaxStarterCodeLength, `Can't be more than ${MaxStarterCodeLength} characters`)
     .optional()
     .transform((s) => s ?? ""),  // Necessary to allow Formik to have empty string
   groups: RoomGroupSchema.array()

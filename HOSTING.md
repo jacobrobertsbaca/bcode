@@ -29,6 +29,7 @@ create table rooms (
   code text primary key,
   name text not null,
   language text not null,
+  starter_code text not null,
   groups json not null,
   created timestamp not null
 );

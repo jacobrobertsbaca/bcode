@@ -2,14 +2,13 @@
 
 import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
-import { Room, groupsForCount } from "@/types/Room";
+import { MaxStarterCodeLength, Room, SupportedLanguages, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
 import { Box, MenuItem, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
-import { SupportedLanguages } from "@/components/code/languages";
 import FormikEditor from "@/components/code/FormikEditor";
 
 function maskCodeInput(code: string): string {
@@ -167,9 +166,9 @@ export default function RoomSidebarInput() {
           <FormikEditor
             placeholder="Add starter code here"
             language={formik.values.language}
-            minHeight="150px"
-            name="starterCode"
-            max={1000}
+            minHeight="100px"
+            name="starter_code"
+            max={MaxStarterCodeLength}
           />
         </Box>
       </Tooltip>

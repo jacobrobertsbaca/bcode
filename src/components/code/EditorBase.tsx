@@ -9,9 +9,9 @@ import { dark } from "./theme/dark";
 import { basicSetup } from "./setup";
 import { EditorViewConfig, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
-import { SupportedLanguages } from "./languages";
 import { languages } from "@codemirror/language-data";
 import { YSyncConfig } from "y-codemirror.next";
+import { SupportedLanguages } from "@/types/Room";
 
 /**
  * Options for creating an interactive editor.

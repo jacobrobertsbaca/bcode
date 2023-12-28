@@ -19,7 +19,6 @@ type FormikEditorProps = EditorFrameProps & {
 export default function FormikEditor(props: FormikEditorProps) {
   const [editorId] = useState(v4());
   const formik = useFormikContext();
-  console.log(formik.errors, formik.values)
 
   useEditor({
     language: props.language,
@@ -47,7 +46,7 @@ export default function FormikEditor(props: FormikEditorProps) {
         />
       </EditorFrame>
       {props.max !== undefined && (
-        <Typography variant="caption" color="text.secondary" pl={1.5}>
+        <Typography variant="caption" color="text.secondary" pl={1.75}>
           {(get(formik.values, props.name) as string).length}/{props.max}
         </Typography>
       )}

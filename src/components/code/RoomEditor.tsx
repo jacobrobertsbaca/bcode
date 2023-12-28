@@ -15,6 +15,7 @@ import { loadDocument, saveDocument } from "@/app/actions";
 import type { Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
 
+const kEditorMaxChars = 2000;
 const kEditorViewId = "code-view";
 const kEditorHeightPx = 400;
 const kEditorHeaderHeightPx = 64;
@@ -42,6 +43,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
 
   useEditor({
     language: room.language,
+    max: kEditorMaxChars,
 
     onCreate() {
       // Setup ydoc and connection to Supabase

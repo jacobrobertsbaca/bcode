@@ -3,7 +3,7 @@
 import { Room, RoomSchema, RoomSchemaNew, groupsForCount } from "@/types/Room";
 import { Box, Divider, Drawer, IconButton, Stack, SvgIcon, Typography, styled } from "@mui/material";
 import { Formik } from "formik";
-import React, { Ref, forwardRef, useRef, useState } from "react";
+import React, { Ref, forwardRef, useState } from "react";
 
 import PlusIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
@@ -13,7 +13,7 @@ import { enqueueSnackbar } from "notistack";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoomState } from "@/state/room";
 import { upsertRoom } from "../actions";
-import { SupportedLanguages } from "@/components/code/languages";
+import { SupportedLanguages } from "@/types/Room";
 
 import SimpleBarCore from "simplebar-core";
 import SimpleBar from "simplebar-react";
@@ -135,7 +135,7 @@ export function AddRoomButton() {
           code: "",
           name: "",
           language: SupportedLanguages[0].name,
-          starterCode: "",
+          starter_code: "",
           groups: groupsForCount(1),
           created: new Date().toISOString(),
         }}
