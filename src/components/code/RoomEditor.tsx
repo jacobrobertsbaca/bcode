@@ -1,7 +1,7 @@
 "use client";
 
 import { CardHeader, Stack, alpha } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
 import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
@@ -15,6 +15,7 @@ import { loadDocument, saveDocument } from "@/app/actions";
 import { channelString, type Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
 import { enqueueSnackbar } from "notistack";
+import { useRoomState } from "@/state/room";
 
 const kEditorMaxChars = 2000;
 const kEditorViewId = "code-view";
@@ -39,6 +40,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const user = useUserState((state) => state.user);
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
+  const roomStatus = useRoomState((state) => state.status);
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
 
@@ -46,7 +48,10 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     language: room.language,
     max: kEditorMaxChars,
 
-    onCreate() {
+    onCreate: useCallback(() => {
+      // If we aren't connected to the room, hide the editor.
+      if (roomStatus !== ConnectionStatus.Connected) return undefined;
+
       // Setup ydoc and connection to Supabase
       const supabase = createClient();
       const ydoc = new Y.Doc();
@@ -77,7 +82,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         parent: document.getElementById(editorId)!,
         extensions: yCollab(ytext, provider.current.awareness, { undoManager }),
       };
-    },
+    }, [roomStatus]),
 
     onDestroy() {
       provider.current?.destroy();

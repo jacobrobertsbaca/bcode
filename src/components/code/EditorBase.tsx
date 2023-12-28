@@ -19,9 +19,10 @@ import { SupportedLanguages } from "@/types/Room";
 export type EditorConfig = {
   /**
    * Called once to initialize the editor state.
-   * @returns The editor config. Base extensions will be included.
+   * @returns The editor config. Base extensions will be included. If `undefined`, the editor will not be rendered.
+   * @remarks The editor will be re-rendered if this changes. You must memoize this using `useMemo` or `useCallback`.
    */
-  onCreate?: () => EditorViewConfig;
+  onCreate: () => EditorViewConfig | undefined;
 
   /**
    * Called when the editor is being destroyed (when the calling component is unmounted).
@@ -116,7 +117,8 @@ export function useEditor(config: EditorConfig): EditorHookState {
   const editorTheme = theme.palette.mode === "light" ? light : dark;
 
   useEffect(() => {
-    const state = config.onCreate?.() ?? {};
+    const state = config.onCreate();
+    if (state === undefined) return;
     const { extensions, ...rest } = state;
 
     // prettier-ignore
@@ -138,7 +140,7 @@ export function useEditor(config: EditorConfig): EditorHookState {
       state?.parent?.replaceChildren();
       setEditorView(undefined);
     };
-  }, [counter]);
+  }, [counter, config.onCreate]);
 
   /* Update the editor theme when the MUI theme changes */
   useEffect(() => {

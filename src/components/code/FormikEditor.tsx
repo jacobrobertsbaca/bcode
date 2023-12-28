@@ -1,7 +1,7 @@
 import { v4 } from "uuid";
 import { EditorStyles, useEditor } from "./EditorBase";
 import EditorFrame, { type EditorFrameProps } from "./EditorFrame";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { EditorView } from "codemirror";
 import { placeholder } from "@codemirror/view";
 import { Stack, Typography } from "@mui/material";
@@ -23,16 +23,19 @@ export default function FormikEditor(props: FormikEditorProps) {
   useEditor({
     language: props.language,
     max: props.max,
-    onCreate: () => ({
-      doc: get(formik.values, props.name),
-      parent: document.getElementById(editorId)!,
-      extensions: [
-        ...(props.placeholder ? [placeholder(props.placeholder)] : []),
-        EditorView.updateListener.of(({ state }) => {
-          formik.setFieldValue(props.name, state.doc.toString());
-        }),
-      ],
-    }),
+    onCreate: useCallback(
+      () => ({
+        doc: get(formik.values, props.name),
+        parent: document.getElementById(editorId)!,
+        extensions: [
+          ...(props.placeholder ? [placeholder(props.placeholder)] : []),
+          EditorView.updateListener.of(({ state }) => {
+            formik.setFieldValue(props.name, state.doc.toString());
+          }),
+        ],
+      }),
+      []
+    ),
   });
 
   return (
