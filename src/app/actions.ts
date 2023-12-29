@@ -14,7 +14,7 @@
 import createServer from "@/provider/server";
 import { RoomChannelEvents } from "@/state/events";
 import { Room, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
-import { differenceBy } from "lodash";
+import { difference, differenceBy } from "lodash";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { decodeUpdateV2, mergeUpdatesV2, Doc, encodeStateAsUpdateV2 } from "yjs";
@@ -88,6 +88,17 @@ function encodeBytes(buffer: Buffer): string {
  */
 function decodeBytes(encoded: string): Buffer {
   return Buffer.from(encoded.slice(2), "hex");
+}
+
+/**
+ * Revalidates all Next.js routes associated with the given room code.
+ * @param code The room code
+ */
+function revalidateRoomPaths(code: string) {
+  revalidatePath("/rooms");
+  revalidatePath(`/rooms/${code}`);
+  revalidatePath(`/${code}`);
+  revalidatePath(`/code/${code}`);
 }
 
 /**
@@ -248,21 +259,43 @@ export async function roomExists(code: string, owner?: string) {
 async function updateStarterCode({ starter_code = "", groups = [] }: Partial<Room>, room: Room) {
   const changed = starter_code !== room.starter_code;
 
+  /* Determines which groups need to be updated.
+   *  - If starter code changes, all groups must be updated.
+   *  - Otherwise, only the added groups need to be updated, and only if they don't already have data. */
+  async function groupsNeedingUpdate(): Promise<number[]> {
+    const allGroups = room.groups.map((g) => g.no);
+    if (changed) return allGroups;
+    const newGroups = difference(allGroups, groups.map((g) => g.no)); // prettier-ignore
+    if (newGroups.length === 0) return newGroups;
+
+    /* Determine if any of new groups have existing data. If so, exclude them */
+    const supabase = createServer();
+    const { data } = await supabase
+      .from(Tables.AggregateUpdates)
+      .select("channel")
+      .like("channel", channelMask(room))
+      .throwOnError();
+
+    return difference(
+      newGroups,
+      data!.map(({ channel }) => parseChannelString(channel)[1])
+    );
+  }
+
   /* Clear all code for existing rooms if starter code changes */
   if (changed) {
     const supabase = createServer();
     await supabase.from(Tables.Updates).delete().like("channel", channelMask(room)).throwOnError();
   }
 
+  /* Find which groups need an update */
+  const needsUpdate = await groupsNeedingUpdate();
+  if (needsUpdate.length === 0) return;
+  
   /* Generate YJS update blob for starter code */
   const ydoc = new Doc();
   ydoc.getText("codemirror").insert(0, room.starter_code);
   const update = Array.from(encodeStateAsUpdateV2(ydoc));
-
-  /* Determine which groups need to be updated.
-   *  - If starter code changes, all groups must be updated.
-   *  - Otherwise, only the new groups not present before need to be */
-  const needsUpdate = changed ? room.groups : differenceBy(room.groups, groups, (g) => g.no);
 
   /* Save all updated groups concurrently */
   await Promise.all(needsUpdate.map((g) => saveDocument(channelString(room, g), update)));
@@ -307,12 +340,8 @@ export async function upsertRoom(room: Room) {
     /* Update room starter code */
     await updateStarterCode(existing ?? {}, room);
 
-    revalidatePath("/rooms");
-    revalidatePath(`/rooms/${room.code}`);
-    revalidatePath(`/${room.code}`);
-    revalidatePath(`/code/${room.code}`);
-
     /* Notify participants of room update */
+    revalidateRoomPaths(room.code);
     if (existing) await notifyParticipants(room.code);
 
     return success();
@@ -348,9 +377,8 @@ export async function deleteRoom(code: string) {
       supabase.from(Tables.Updates).delete().like("channel", channelMask(code)).throwOnError(),
     ]);
 
-    revalidatePath("/rooms");
-
     /* Notify participants of room delete */
+    revalidateRoomPaths(code);
     await notifyParticipants(code);
 
     return success();
