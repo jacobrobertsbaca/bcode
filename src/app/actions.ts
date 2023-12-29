@@ -14,7 +14,7 @@
 import createServer from "@/provider/server";
 import { RoomChannelEvents } from "@/state/events";
 import { Room, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
-import { difference, differenceBy } from "lodash";
+import { difference } from "lodash";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { decodeUpdateV2, mergeUpdatesV2, Doc, encodeStateAsUpdateV2 } from "yjs";

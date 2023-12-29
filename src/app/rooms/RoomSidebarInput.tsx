@@ -11,16 +11,28 @@ import {
   MenuItem,
   Slider,
   Stack,
-  Tooltip,
+  Tooltip as MuiTooltip,
   Typography,
   useMediaQuery,
   useTheme,
+  TooltipProps,
 } from "@mui/material";
 import { useFormikContext } from "formik";
 import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
 import FormikEditor from "@/components/code/FormikEditor";
+
+function Tooltip({ children, ...rest }: TooltipProps) {
+  const theme = useTheme();
+  const sm = useMediaQuery(theme.breakpoints.up(900));
+  const placement = sm ? "left" : "bottom";
+  return (
+    <MuiTooltip disableInteractive placement={placement} arrow {...rest}>
+      {children}
+    </MuiTooltip>
+  );
+}
 
 function maskCodeInput(code: string): string {
   return code
@@ -35,11 +47,6 @@ export default function RoomSidebarInput() {
   const exists = !!formik.initialValues.code;
   const [codeModified, setCodeModified] = useState(false);
 
-  // Use breakpoint for tooltip placement
-  const theme = useTheme();
-  const sm = useMediaQuery(theme.breakpoints.up(900));
-  const placement = sm ? "left" : "bottom";
-
   const debouncedValidate = useMemo(
     () => debounce(formik.validateForm, 500, { trailing: true }),
     [formik.validateForm]
@@ -52,8 +59,6 @@ export default function RoomSidebarInput() {
     <Stack m={3} spacing={2}>
       <Typography variant="subtitle2">Room Info</Typography>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
@@ -82,8 +87,6 @@ export default function RoomSidebarInput() {
         />
       </Tooltip>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
@@ -130,8 +133,6 @@ export default function RoomSidebarInput() {
       </FormikTextField>
       <Typography variant="subtitle2">Groups</Typography>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
@@ -160,8 +161,6 @@ export default function RoomSidebarInput() {
         </Box>
       </Tooltip>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
