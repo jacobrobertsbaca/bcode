@@ -14,13 +14,14 @@ import EditorOnline from "./EditorOnline";
 import { loadDocument, saveDocument } from "@/app/actions";
 import { channelString, type Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
-import { enqueueSnackbar } from "notistack";
+import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
 
 const kEditorMaxChars = 2000;
 const kEditorViewId = "code-view";
 const kEditorHeightPx = 400;
 const kEditorHeaderHeightPx = 64;
+const kReloadWaitMs = 5000;
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
@@ -37,20 +38,28 @@ type RoomEditorProps = EditorFrameProps & {
 };
 
 export default function RoomEditor({ room, group, action }: RoomEditorProps) {
+  /* Global State */
   const user = useUserState((state) => state.user);
+  const roomStatus = useRoomState((state) => state.status);
+
+  /* Editor State */
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
-  const roomStatus = useRoomState((state) => state.status);
+  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout>();
+
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
 
-  const { reloadEditor } = useEditor({
+  useEditor({
     language: room.language,
     max: kEditorMaxChars,
 
     onCreate: useCallback(() => {
-      // If we aren't connected to the room, hide the editor.
-      if (roomStatus !== ConnectionStatus.Connected) return undefined;
+      // If we are waiting to reload the editor, do nothing.
+      if (refreshTimeout) return;
+
+      // If we aren't connected to the room, do nothing.
+      if (roomStatus !== ConnectionStatus.Connected) return;
 
       // Setup ydoc and connection to Supabase
       const supabase = createClient();
@@ -82,10 +91,11 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         parent: document.getElementById(editorId)!,
         extensions: yCollab(ytext, provider.current.awareness, { undoManager }),
       };
-    }, [roomStatus]),
+    }, [roomStatus, refreshTimeout]),
 
-    onDestroy() {
-      provider.current?.destroy();
+    async onDestroy() {
+      await provider.current?.destroy();
+      setProviderStatus(ConnectionStatus.Connecting);
     },
   });
 
@@ -96,13 +106,27 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     updateProviderUser(provider.current, user);
   }, [user]);
 
-  /* Update the document state to the starter code when the starter code changes */
+  /* Update the document state to the starter code when the starter code changes
+   *
+   * When the starter code is changed, we must update the document state for everyone.
+   * The easiest way to do this is to reload the editor. However, if we reload the editor
+   * right away, there is a chance that a client will resync the **old** document state with
+   * one of their peers upon reload, causing the editor to have both the old and new code.
+   * To remedy this, we wait to reload the editor for a few seconds to ensure that all clients
+   * have dropped the old state.
+   */
   const starterCode = useRef(room.starter_code);
   useEffect(() => {
     if (room.starter_code === starterCode.current) return;
     starterCode.current = room.starter_code;
-    reloadEditor();
-    if (!user.isHost) enqueueSnackbar("The host updated the starter code.");
+    const snackbar = !user.isHost && enqueueSnackbar("The host updated the starter code. Please wait...");
+    setRefreshTimeout((t) => {
+      clearTimeout(t);
+      return setTimeout(() => {
+        setRefreshTimeout(undefined);
+        if (snackbar) closeSnackbar(snackbar);
+      }, kReloadWaitMs);
+    });
   }, [room.starter_code]);
 
   return (

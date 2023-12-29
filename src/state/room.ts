@@ -52,9 +52,6 @@ export const useRoomState = create<RoomState>((set, get) => ({
         presence: {
           key: useUserState.getState().user.id,
         },
-        broadcast: {
-          ack: true,
-        },
       },
     });
 
