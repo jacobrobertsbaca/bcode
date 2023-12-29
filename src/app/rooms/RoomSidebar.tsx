@@ -11,7 +11,6 @@ import { toFormikValidationSchema } from "zod-formik-adapter";
 import RoomSidebarInput from "./RoomSidebarInput";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "@/components/navigation/AppProgressBar";
-import { useRoomState } from "@/state/room";
 import { upsertRoom } from "../actions";
 import { SupportedLanguages } from "@/types/Room";
 
@@ -43,7 +42,6 @@ type RoomSidebarProps = {
 export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
   const exists = !!room.code;
   const router = useRouter();
-  const updatePeers = useRoomState((state) => state.update);
   const [scrolled, setScrolled] = useState(false);
 
   /* Show a shadow on header when user scrolls */
@@ -78,7 +76,6 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
               const { error } = await upsertRoom(room);
               if (error) throw new Error(error.message);
               if (exists) {
-                updatePeers();
                 router.refresh();
                 setOpen(false);
               } else {

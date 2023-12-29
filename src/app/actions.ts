@@ -12,6 +12,7 @@
  */
 
 import createServer from "@/provider/server";
+import { RoomChannelEvents } from "@/state/events";
 import { Room, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
 import { differenceBy } from "lodash";
 import { revalidatePath } from "next/cache";
@@ -87,6 +88,27 @@ function encodeBytes(buffer: Buffer): string {
  */
 function decodeBytes(encoded: string): Buffer {
   return Buffer.from(encoded.slice(2), "hex");
+}
+
+/**
+ * Notifies the participants of a room that the room has been updated.
+ * @param code The room code
+ */
+async function notifyParticipants(code: string) {
+  /* Connect to channel */
+  const channel = createServer().channel(code, { config: { broadcast: { ack: true } } });
+  await new Promise<void>((resolve, reject) => channel.subscribe(status => {
+    if (status === "SUBSCRIBED") resolve();
+    reject(`Failed to subscribe to Supabase channel: ${status}`);
+  }));
+
+  /* Send update message */
+  const result = await channel.send({
+    type: "broadcast",
+    event: RoomChannelEvents.Update
+  });
+
+  if (result !== "ok") throw new Error(`Failed to update participants: ${result}`);
 }
 
 /*
@@ -289,6 +311,10 @@ export async function upsertRoom(room: Room) {
     revalidatePath(`/rooms/${room.code}`);
     revalidatePath(`/${room.code}`);
     revalidatePath(`/code/${room.code}`);
+
+    /* Notify participants of room update */
+    if (existing) await notifyParticipants(room.code);
+
     return success();
   } catch (err: any) {
     return failure(500, err.message);
@@ -323,6 +349,10 @@ export async function deleteRoom(code: string) {
     ]);
 
     revalidatePath("/rooms");
+
+    /* Notify participants of room delete */
+    await notifyParticipants(code);
+
     return success();
   } catch (err: any) {
     return failure(500, err.message);

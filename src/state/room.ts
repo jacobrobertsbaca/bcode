@@ -8,11 +8,11 @@ import { type LiveUser, useUserState } from "./user";
 import { enqueueSnackbar } from "notistack";
 import { useEffect } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { RoomChannelEvents } from "./events";
 
 interface RoomMethods {
   join: (room: Room, router: AppRouterInstance) => Promise<void>;
   track: () => Promise<void>;
-  update: () => Promise<void>;
   leave: () => void;
 }
 
@@ -29,10 +29,6 @@ interface RoomStateConnected {
 }
 
 export type RoomState = RoomMethods & (RoomStateConnected | RoomStateDisconnected);
-
-enum ChannelEvents {
-  Update = "update",
-}
 
 const logger = debug("[ROOM]");
 logger.enabled = true;
@@ -76,7 +72,7 @@ export const useRoomState = create<RoomState>((set, get) => ({
 
         set({ users });
       })
-      .on("broadcast", { event: ChannelEvents.Update }, () => {
+      .on("broadcast", { event: RoomChannelEvents.Update }, () => {
         logger("Notified of update to current room.");
         router.refresh();
       })
@@ -102,17 +98,6 @@ export const useRoomState = create<RoomState>((set, get) => ({
             break;
         }
       });
-  },
-
-  async update() {
-    const self = get();
-    if (!self.channel) return;
-    logger("Notifying participants of room update");
-    const response = await self.channel.send({
-      type: "broadcast",
-      event: ChannelEvents.Update,
-    });
-    if (response !== "ok") throw new Error("Failed to notify participants");
   },
 
   async track() {

@@ -6,7 +6,6 @@ import { Fade, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typograph
 import React from "react";
 import RoomSidebar from "../RoomSidebar";
 import { DeleteDialog } from "@/components/DeleteDialog";
-import { useRoomState } from "@/state/room";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { deleteRoom } from "@/app/actions";
 
@@ -14,7 +13,6 @@ export default function ShowMore({ room }: { room: Room }) {
   const [editing, setEditing] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const updatePeers = useRoomState((state) => state.update);
   const router = useRouter();
   const open = !!anchorEl;
 
@@ -61,7 +59,6 @@ export default function ShowMore({ room }: { room: Room }) {
         onDelete={async () => {
           const { error } = await deleteRoom(room.code);
           if (error) throw new Error(error.message);
-          updatePeers();
           router.replace("/rooms");
         }}
       />
