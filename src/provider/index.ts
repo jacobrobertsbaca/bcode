@@ -4,11 +4,14 @@ import * as AwarenessProtocol from "y-protocols/awareness";
 import EventEmitter from "events";
 import debug, { Debugger } from "debug";
 import { ConnectionStatus } from "@/types/Connection";
-import { debounce } from "lodash";
+import { debounce, defaults } from "lodash";
+
+const DefaultResyncMs = 20000;
+const DefaultSaveMs = 2500;
 
 export type SupabaseProviderConfig = {
   /** Name of the Supabase channel to connect to. */
-  channel: string;
+  readonly channel: string;
 
   /**
    * Callback to save document updates to Supabase.
@@ -25,16 +28,28 @@ export type SupabaseProviderConfig = {
   loadDocument?: () => Uint8Array | null | Promise<Uint8Array | null>;
 
   /**
-   * How often the provider should do a complete resync with peers in milliseconds.
-   * Set to 0 or `false` to disable. Defaults to 20,000 ms.
+   * Whether or not resyncing with peers is enabled.
+   * Defaults to `true`.
    */
-  resyncInterval?: number | false;
+  resync: boolean;
 
   /**
-   * How often to save the document to the database in milliseconds.
-   * Set to 0 or `false` to disable. Defaults to 5,000 ms.
+   * Whether or not saving the document is enabled.
+   * Defaults to `true`.
    */
-  saveInterval?: number | false;
+  save: boolean;
+
+  /**
+   * How often the provider should do a complete resync with peers in milliseconds.
+   * Must be positive. Defaults to 20,000 ms.
+   */
+  readonly resyncInterval: number;
+
+  /**
+   * How often to save the document in milliseconds.
+   * Must be positive. Defaults to 2,500 ms.
+   */
+  readonly saveInterval: number;
 };
 
 export enum SupabaseProviderEvents {
@@ -45,6 +60,13 @@ export enum SupabaseProviderEvents {
    * @param error {@link (Error | undefined)} The associated error, if status is {@link ConnectionStatus.DisconnectedError}
    */
   Status = "status",
+
+  /**
+   * Fired when the provider has started or stopped saving persistent state.
+   * @param provider {@link SupabaseProvider} This provider
+   * @param saving {@link boolean} If `true`, the provider has started saving. If `false`, the provider has finished saving.
+   */
+  Saving = "saving",
 }
 
 enum ChannelEvents {
@@ -52,10 +74,11 @@ enum ChannelEvents {
   Awareness = "awareness",
 }
 
-const DefaultResyncMs = 20000;
-const DefaultSaveMs = 5000;
+type PartialExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
+type ProviderConfig = PartialExcept<SupabaseProviderConfig, "channel">;
 
 export class SupabaseProvider extends EventEmitter {
+  public readonly config: SupabaseProviderConfig;
   public readonly awareness: AwarenessProtocol.Awareness;
   public get status() {
     return this._status;
@@ -65,22 +88,30 @@ export class SupabaseProvider extends EventEmitter {
     return this.saveCounter > 0;
   }
 
-  constructor(private doc: Y.Doc, private supabase: SupabaseClient, private config: SupabaseProviderConfig) {
+  constructor(private doc: Y.Doc, private supabase: SupabaseClient, config: ProviderConfig) {
     super();
     this.logger = debug("y-" + doc.clientID);
     this.logger.enabled = true;
     this.logger(`Creating ${SupabaseProvider.name} for document ${this.doc.guid}`);
+
+    this.config = this.validateConfig(config);
     this.awareness = new AwarenessProtocol.Awareness(doc);
 
     /* Set up resyncInterval */
-    if (this.resyncInterval > 0) this.resync = setInterval(this.sendResyncUpdate.bind(this), this.resyncInterval);
+    this.resync = setInterval(this.sendResyncUpdate.bind(this), this.config.resyncInterval);
 
     /* Setup debounced save function */
-    const debouncedSave = debounce(this.saveDocument.bind(this), this.saveInterval);
-    this.saveDocumentDebounced = () => {
+    const debouncedSave = debounce(
+      () => this.status === ConnectionStatus.Connected && this.saveDocument(),
+      this.config.saveInterval
+    );
+
+    this.requestSave = () => {
       if (this.status !== ConnectionStatus.Connected) return;
-      if (this.saveInterval === 0) return;
+      if (!this.config.save || !this.config.saveDocument) return;
+      const wasSaving = this.saving;
       this.saveCounter++;
+      if (wasSaving !== this.saving) this.emit(SupabaseProviderEvents.Saving, this, this.saving);
       debouncedSave();
     };
 
@@ -154,24 +185,29 @@ export class SupabaseProvider extends EventEmitter {
   private previous: Uint8Array | null = null;
   private alone: boolean = true;
   private saveCounter: number = 0; // The number of outstanding document saves
-  private saveDocumentDebounced: () => void;
+  private requestSave: () => void;
 
-  private get resyncInterval(): number {
-    if (this.config.resyncInterval === undefined) return DefaultResyncMs;
-    return this.config.resyncInterval || 0;
-  }
+  private validateConfig(config: ProviderConfig): SupabaseProviderConfig {
+    const result = defaults(
+      { ...config },
+      {
+        save: true,
+        resync: true,
+        resyncInterval: DefaultResyncMs,
+        saveInterval: DefaultSaveMs,
+      }
+    );
 
-  private get saveInterval(): number {
-    if (!this.config.saveDocument) return 0;
-    if (this.config.saveInterval === undefined) return DefaultSaveMs;
-    return this.config.saveInterval || 0;
+    if (result.resyncInterval <= 0) throw new Error("resyncInterval must be positive");
+    if (result.saveInterval <= 0) throw new Error("saveInterval must be positive");
+
+    return result;
   }
 
   private async destroyInternal(status: ConnectionStatus, error?: any) {
     /* Don't run destruction logic if already destroyed */
     if (this.status === ConnectionStatus.Disconnected || this.status === ConnectionStatus.DisconnectedError) return;
     this._status = ConnectionStatus.Disconnected;
-    this.saveCounter = 0;
 
     this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
     clearInterval(this.resync);
@@ -183,6 +219,9 @@ export class SupabaseProvider extends EventEmitter {
     } else if (typeof process !== "undefined") {
       process.off("exit", this.onUnload);
     }
+
+    /* Save any outstanding changes to the document */
+    await this.saveDocument();
 
     /* Unbind from document/awareness callbacks */
     this.doc.off("update", this.onDocumentUpdate);
@@ -264,8 +303,8 @@ export class SupabaseProvider extends EventEmitter {
    * This should be debounced to save on database egress.
    */
   private async saveDocument() {
-    if (this.status !== ConnectionStatus.Connected) return;
-    if (!this.config.saveDocument) return;
+    if (!this.config.save || !this.config.saveDocument) return;
+    if (this.saveCounter === 0) return; // Nothing to save
     const outstandingSaves = this.saveCounter;
 
     this.logger("Saving persistent document data...");
@@ -284,7 +323,11 @@ export class SupabaseProvider extends EventEmitter {
     }
 
     this.previous = Y.encodeStateVector(this.doc);
+
+    /* Fire saving event if needed */
+    const wasSaving = this.saving;
     this.saveCounter -= outstandingSaves;
+    if (wasSaving !== this.saving) this.emit(SupabaseProviderEvents.Saving, this, this.saving);
   }
 
   /**
@@ -344,6 +387,7 @@ export class SupabaseProvider extends EventEmitter {
    * By calling this periodically, we can avoid peers' local document state from diverging.
    */
   private sendResyncUpdate() {
+    if (!this.config.resync) return;
     const update = Y.encodeStateAsUpdate(this.doc);
     this.sendDocumentUpdate(update);
   }
@@ -351,7 +395,7 @@ export class SupabaseProvider extends EventEmitter {
   private onDocumentUpdate(update: Uint8Array, origin: any) {
     if (origin === this) return;
     this.sendDocumentUpdate(update);
-    this.saveDocumentDebounced();
+    this.requestSave();
   }
 
   private onAwarenessUpdate({ added, updated, removed }: any, origin: any) {

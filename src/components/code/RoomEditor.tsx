@@ -1,6 +1,6 @@
 "use client";
 
-import { CardHeader, Stack, alpha } from "@mui/material";
+import { CardHeader, Stack, Typography, alpha, useTheme } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
@@ -12,7 +12,7 @@ import EditorOverlay from "./EditorOverlay";
 import { LiveUser, useUserState } from "@/state/user";
 import EditorOnline from "./EditorOnline";
 import { loadDocument, saveDocument } from "@/app/actions";
-import { channelString, type Room } from "@/types/Room";
+import { channelString, type RoomGroup, type Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
@@ -37,6 +37,25 @@ type RoomEditorProps = EditorFrameProps & {
   action?: React.ReactNode;
 };
 
+function EditorTitle({ group, saving }: { group?: RoomGroup; saving: boolean }) {
+  const theme = useTheme();
+  return (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <Typography variant="inherit">{group?.name}</Typography>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          transition: "opacity 300ms",
+          opacity: saving ? 1 : 0,
+        }}
+      >
+        Saving...
+      </Typography>
+    </Stack>
+  );
+}
+
 export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   /* Global State */
   const user = useUserState((state) => state.user);
@@ -46,6 +65,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
   const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout>();
+  const [saving, setSaving] = useState(false);
 
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
@@ -87,6 +107,11 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
       });
 
+      setSaving(false);
+      provider.current.on(SupabaseProviderEvents.Saving, (instance: SupabaseProvider, saving: boolean) => {
+        setSaving(saving);
+      });
+
       return {
         parent: document.getElementById(editorId)!,
         extensions: yCollab(ytext, provider.current.awareness, { undoManager }),
@@ -96,6 +121,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     async onDestroy() {
       await provider.current?.destroy();
       setProviderStatus(ConnectionStatus.Connecting);
+      setSaving(false);
     },
   });
 
@@ -119,7 +145,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   useEffect(() => {
     if (room.starter_code === starterCode.current) return;
     starterCode.current = room.starter_code;
-    const snackbar = !user.isHost && enqueueSnackbar("The host updated the starter code. Please wait...");
+    const snackbar = !user.isHost && enqueueSnackbar("The host updated the starter code.");
     setRefreshTimeout((t) => {
       clearTimeout(t);
       return setTimeout(() => {
@@ -127,6 +153,12 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         if (snackbar) closeSnackbar(snackbar);
       }, kReloadWaitMs);
     });
+
+    /* Disable document saving and resyncing while reloading so we don't push stale updates */
+    if (provider.current) {
+      provider.current.config.save = false;
+      provider.current.config.resync = false;
+    }
   }, [room.starter_code]);
 
   /* When user navigates away from tab, warn user about unsaved changes */
@@ -145,7 +177,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   return (
     <EditorFrame sx={{ minHeight: kEditorHeightPx }}>
       <CardHeader
-        title={room?.groups.find((g) => g.no === group)?.name ?? ""}
+        title={<EditorTitle group={room?.groups.find((g) => g.no === group)} saving={saving} />}
         titleTypographyProps={{ variant: "h6", fontWeight: 400 }}
         action={
           <Stack direction="row" alignItems="center" spacing={1}>
