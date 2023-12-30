@@ -129,6 +129,19 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     });
   }, [room.starter_code]);
 
+  /* When user navigates away from tab, warn user about unsaved changes */
+  useEffect(() => {
+    function onBeforeUnload(event: BeforeUnloadEvent) {
+      if (!provider.current) return;
+      if (!provider.current.saving) return;
+      event.returnValue = "You have unsaved changes";
+      event.preventDefault();
+    }
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
   return (
     <EditorFrame sx={{ minHeight: kEditorHeightPx }}>
       <CardHeader

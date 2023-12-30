@@ -61,6 +61,10 @@ export class SupabaseProvider extends EventEmitter {
     return this._status;
   }
 
+  public get saving() {
+    return this.saveCounter > 0;
+  }
+
   constructor(private doc: Y.Doc, private supabase: SupabaseClient, private config: SupabaseProviderConfig) {
     super();
     this.logger = debug("y-" + doc.clientID);
@@ -72,9 +76,13 @@ export class SupabaseProvider extends EventEmitter {
     if (this.resyncInterval > 0) this.resync = setInterval(this.sendResyncUpdate.bind(this), this.resyncInterval);
 
     /* Setup debounced save function */
-    this.saveDocumentDebounced = debounce(() => {
-      this.saveDocument();
-    }, this.config.saveInterval || DefaultSaveMs);
+    const debouncedSave = debounce(this.saveDocument.bind(this), this.saveInterval);
+    this.saveDocumentDebounced = () => {
+      if (this.status !== ConnectionStatus.Connected) return;
+      if (this.saveInterval === 0) return;
+      this.saveCounter++;
+      debouncedSave();
+    };
 
     /* Register unload handlers */
     this.onUnload = this.onUnload.bind(this);
@@ -145,6 +153,7 @@ export class SupabaseProvider extends EventEmitter {
   private resync: NodeJS.Timeout | undefined;
   private previous: Uint8Array | null = null;
   private alone: boolean = true;
+  private saveCounter: number = 0; // The number of outstanding document saves
   private saveDocumentDebounced: () => void;
 
   private get resyncInterval(): number {
@@ -152,10 +161,17 @@ export class SupabaseProvider extends EventEmitter {
     return this.config.resyncInterval || 0;
   }
 
+  private get saveInterval(): number {
+    if (!this.config.saveDocument) return 0;
+    if (this.config.saveInterval === undefined) return DefaultSaveMs;
+    return this.config.saveInterval || 0;
+  }
+
   private async destroyInternal(status: ConnectionStatus, error?: any) {
     /* Don't run destruction logic if already destroyed */
     if (this.status === ConnectionStatus.Disconnected || this.status === ConnectionStatus.DisconnectedError) return;
     this._status = ConnectionStatus.Disconnected;
+    this.saveCounter = 0;
 
     this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
     clearInterval(this.resync);
@@ -249,8 +265,9 @@ export class SupabaseProvider extends EventEmitter {
    */
   private async saveDocument() {
     if (this.status !== ConnectionStatus.Connected) return;
-    if (this.config.saveInterval === 0 || this.config.saveInterval === false) return;
     if (!this.config.saveDocument) return;
+    const outstandingSaves = this.saveCounter;
+
     this.logger("Saving persistent document data...");
     const current = Y.encodeStateAsUpdateV2(this.doc);
     const diff = this.previous ? Y.diffUpdateV2(current, this.previous) : Y.encodeStateAsUpdateV2(this.doc);
@@ -267,6 +284,7 @@ export class SupabaseProvider extends EventEmitter {
     }
 
     this.previous = Y.encodeStateVector(this.doc);
+    this.saveCounter -= outstandingSaves;
   }
 
   /**

@@ -136,8 +136,8 @@ export function useEditor(config: EditorConfig): EditorHookState {
     );
 
     return () => {
-      config.onDestroy?.();
       state?.parent?.replaceChildren();
+      config.onDestroy?.();
       setEditorView(undefined);
     };
   }, [counter, config.onCreate]);
