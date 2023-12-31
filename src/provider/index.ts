@@ -303,16 +303,25 @@ export class SupabaseProvider extends EventEmitter {
    * This should be debounced to save on database egress.
    */
   private async saveDocument() {
-    if (!this.config.save || !this.config.saveDocument) return;
     if (this.saveCounter === 0) return; // Nothing to save
     const outstandingSaves = this.saveCounter;
+
+    /* Called after a successful save. Fires the saving event if needed */
+    const onSaved = () => {
+      const wasSaving = this.saving;
+      this.saveCounter -= outstandingSaves;
+      if (this.status === ConnectionStatus.Connected && wasSaving !== this.saving)
+        this.emit(SupabaseProviderEvents.Saving, this, this.saving);
+    };
+
+    if (!this.config.save || !this.config.saveDocument) return onSaved();
 
     this.logger("Saving persistent document data...");
     const current = Y.encodeStateAsUpdateV2(this.doc);
     const diff = this.previous ? Y.diffUpdateV2(current, this.previous) : Y.encodeStateAsUpdateV2(this.doc);
 
     /* This prevents us from saving empty updates */
-    if (JSON.stringify([0, 0]) === JSON.stringify(Array.from(diff))) return;
+    if (JSON.stringify([0, 0]) === JSON.stringify(Array.from(diff))) return onSaved();
 
     /* Save document, failing if errors occur */
     try {
@@ -323,11 +332,7 @@ export class SupabaseProvider extends EventEmitter {
     }
 
     this.previous = Y.encodeStateVector(this.doc);
-
-    /* Fire saving event if needed */
-    const wasSaving = this.saving;
-    this.saveCounter -= outstandingSaves;
-    if (wasSaving !== this.saving) this.emit(SupabaseProviderEvents.Saving, this, this.saving);
+    onSaved();
   }
 
   /**

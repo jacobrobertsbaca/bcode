@@ -17,11 +17,55 @@ import { EditorStyles, useEditor } from "./EditorBase";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
 
+/**
+ * Maximum allowed characters to be typed in the editor.
+ * This prevents excessively large documents.
+ */
 const kEditorMaxChars = 2000;
+
+/**
+ * Prefix for editor DOM ids.
+ */
 const kEditorViewId = "code-view";
+
+/**
+ * Minimum height of the editor in pixels.
+ */
 const kEditorHeightPx = 400;
+
+/**
+ * Height of the editor header.
+ */
 const kEditorHeaderHeightPx = 64;
-const kReloadWaitMs = 5000;
+
+/**
+ * How long to wait while reloading the editor after starter code has changed in milliseconds.
+ */
+const kReloadWaitMs = 2500;
+
+/**
+ * How long to show that the document has been saved in the UI in milliseconds.
+ */
+const kSavedDisplayMs = 2000;
+
+function EditorTitle({ group, saving }: { group?: RoomGroup; saving: NodeJS.Timeout | boolean }) {
+  const theme = useTheme();
+  return (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <Typography variant="inherit">{group?.name}</Typography>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          transition: "opacity 300ms",
+          opacity: saving ? 1 : 0,
+        }}
+      >
+        {saving === true ? "Saving..." : "Saved"}
+      </Typography>
+    </Stack>
+  );
+}
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
   provider.awareness.setLocalStateField("user", {
@@ -37,25 +81,6 @@ type RoomEditorProps = EditorFrameProps & {
   action?: React.ReactNode;
 };
 
-function EditorTitle({ group, saving }: { group?: RoomGroup; saving: boolean }) {
-  const theme = useTheme();
-  return (
-    <Stack direction="row" alignItems="center" spacing={1}>
-      <Typography variant="inherit">{group?.name}</Typography>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{
-          transition: "opacity 300ms",
-          opacity: saving ? 1 : 0,
-        }}
-      >
-        Saving...
-      </Typography>
-    </Stack>
-  );
-}
-
 export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   /* Global State */
   const user = useUserState((state) => state.user);
@@ -65,7 +90,24 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
   const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout>();
-  const [saving, setSaving] = useState(false);
+
+  /*
+   * To keep track of the document save status and display this to the user, we keep track of several
+   * values.
+   *
+   *    - `true` if the provider is saving to the database
+   *    - A `Timeout` object if the provider has saved and we are showing this in the UI temporarily.
+   *    - `false` if the provider has saved.
+   *
+   */
+  const [saving, setSaving] = useState<NodeJS.Timeout | boolean>(false);
+  const onSaveChanged = useCallback((saving: boolean, showSaved: boolean) => {
+    setSaving((s) => {
+      if (typeof s !== "boolean") clearTimeout(s);
+      if (saving || !showSaved) return saving;
+      return setTimeout(() => setSaving(false), kSavedDisplayMs);
+    });
+  }, []);
 
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
@@ -107,21 +149,21 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
       });
 
-      setSaving(false);
+      onSaveChanged(false, false);
       provider.current.on(SupabaseProviderEvents.Saving, (instance: SupabaseProvider, saving: boolean) => {
-        setSaving(saving);
+        onSaveChanged(saving, true);
       });
 
       return {
         parent: document.getElementById(editorId)!,
         extensions: yCollab(ytext, provider.current.awareness, { undoManager }),
       };
-    }, [roomStatus, refreshTimeout]),
+    }, [roomStatus, refreshTimeout, channel]),
 
     async onDestroy() {
       await provider.current?.destroy();
       setProviderStatus(ConnectionStatus.Connecting);
-      setSaving(false);
+      onSaveChanged(false, false);
     },
   });
 
