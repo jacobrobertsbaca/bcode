@@ -247,13 +247,16 @@ export class SupabaseProvider extends EventEmitter {
 
   private async onSubscribed() {
     this.logger("Successfully connected to Realtime channel.");
-    await this.loadDocument();
+    if (!(await this.loadDocument())) {
+      this.logger("Error occured loading document.");
+      return;
+    }
 
     /*
      * Track Realtime presence on Supabase channel.
      * If nobody else has joined the room, then we won't send any messages.
      */
-    if ((await this.channel!.track({})) !== "ok") {
+    if (!this.channel || (await this.channel.track({})) !== "ok") {
       this.logger("Error occured tracking Realtime presence.");
       return this.destroyInternal(ConnectionStatus.DisconnectedError, new Error("Failed to track Realtime presence"));
     }

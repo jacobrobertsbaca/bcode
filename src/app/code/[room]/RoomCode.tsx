@@ -1,6 +1,6 @@
 "use client";
 
-import { AppBar, IconButton, Stack, SvgIcon, Toolbar, Tooltip, Typography, useTheme } from "@mui/material";
+import { IconButton, Stack, SvgIcon, Tooltip, Typography, useTheme } from "@mui/material";
 import QRCode from "react-qr-code";
 import { courier } from "@/components/ThemeRegistry/fonts";
 import EditorFrame from "@/components/code/EditorFrame";
@@ -13,14 +13,13 @@ import { enqueueSnackbar } from "notistack";
 import { Canvg } from "canvg";
 import Navigation from "@/components/navigation/Navigation";
 import { minifyURL } from "@/app/util";
-import { useRouter } from "@/components/navigation/AppProgressBar";
 
 const kQRCodeId = "qr-code";
 
 export default function RoomCode({ room }: { room: Room }) {
   const theme = useTheme();
   const link = `${process.env.NEXT_PUBLIC_SITE_URL}/${room.code}`;
-  useRoom(room, useRouter(), true);
+  useRoom(room);
 
   async function copyToClipboard() {
     await navigator.clipboard.writeText(link);

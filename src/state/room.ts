@@ -9,6 +9,7 @@ import { enqueueSnackbar } from "notistack";
 import { useEffect } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { RoomChannelEvents } from "./events";
+import { useRouter } from "@/components/navigation/AppProgressBar";
 
 interface RoomMethods {
   join: (room: Room, router: AppRouterInstance) => Promise<void>;
@@ -39,12 +40,18 @@ export const useRoomState = create<RoomState>((set, get) => ({
   status: ConnectionStatus.Disconnected,
 
   async join(room: Room, router: AppRouterInstance) {
-    const status = get().status;
-    if (status === ConnectionStatus.Connecting) throw new Error("Cannot join while connecting to a room.");
-    if (status === ConnectionStatus.Connected) throw new Error("Already connected to a room.");
+    const self = get();
+    const status = self.status;
 
-    logger(`Connecting to room ${room.code}...`);
-    set({ status: ConnectionStatus.Connecting });
+    if (status === ConnectionStatus.Connecting || status === ConnectionStatus.Connected) {
+      if (self.channel?.subTopic !== room.code) {
+        logger(`Joining a different room than the current one (${self.channel?.subTopic}). Leaving...`);
+        self.leave();
+      } else {
+        logger(`Joining ${room.code}. Already connected.`);
+      }
+      return;
+    }
 
     const supabase = createClient();
     const channel = supabase.channel(room.code, {
@@ -54,6 +61,9 @@ export const useRoomState = create<RoomState>((set, get) => ({
         },
       },
     });
+
+    logger(`Connecting to room ${room.code}...`);
+    set({ status: ConnectionStatus.Connecting, channel, users: {} });
 
     channel
       .on("presence", { event: "sync" }, () => {
@@ -79,7 +89,7 @@ export const useRoomState = create<RoomState>((set, get) => ({
             /* Until we have synced, there are no users in any of the rooms */
             const self = get();
             if (self.status !== ConnectionStatus.Connecting) return;
-            set({ users: {}, channel, status: ConnectionStatus.Connected });
+            set({ status: ConnectionStatus.Connected });
             logger(`Connection to room ${room.code} successful.`);
             break;
 
@@ -101,6 +111,7 @@ export const useRoomState = create<RoomState>((set, get) => ({
     const self = get();
     if (!self.channel) return;
     const user = useUserState.getState().user;
+    if (user.isHost) return; // Don't track host user
     await self.channel.track(user);
   },
 
@@ -121,7 +132,8 @@ export const useRoomState = create<RoomState>((set, get) => ({
   },
 }));
 
-export function useRoom(room: Room, router: AppRouterInstance, host: boolean) {
+export function useRoom(room: Room) {
+  const router = useRouter();
   const userState = useUserState();
   const roomState = useRoomState();
 
@@ -131,14 +143,13 @@ export function useRoom(room: Room, router: AppRouterInstance, host: boolean) {
     return () => roomState.leave();
   }, []);
 
-  /* If we are not the host, notify others of user changes */
+  /* Notify others of user changes */
   useEffect(() => {
-    if (!host) roomState.track();
+    roomState.track();
   }, [userState.user]);
 
   /* If room changes and guest is no longer in the room, leave the room */
   useEffect(() => {
-    if (host) return;
     if (userState.user.group > 0 && !room.groups.some((g) => g.no === userState.user.group)) {
       userState.updateUser({ group: 0 });
       enqueueSnackbar("The host closed your group.");

@@ -108,15 +108,17 @@ function revalidateRoomPaths(code: string) {
 async function notifyParticipants(code: string) {
   /* Connect to channel */
   const channel = createServer().channel(code, { config: { broadcast: { ack: true } } });
-  await new Promise<void>((resolve, reject) => channel.subscribe(status => {
-    if (status === "SUBSCRIBED") resolve();
-    reject(`Failed to subscribe to Supabase channel: ${status}`);
-  }));
+  await new Promise<void>((resolve, reject) =>
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") resolve();
+      else reject(`Failed to subscribe to Supabase channel: ${status}`);
+    })
+  );
 
   /* Send update message */
   const result = await channel.send({
     type: "broadcast",
-    event: RoomChannelEvents.Update
+    event: RoomChannelEvents.Update,
   });
 
   if (result !== "ok") throw new Error(`Failed to update participants: ${result}`);
@@ -256,6 +258,11 @@ export async function roomExists(code: string, owner?: string) {
   }
 }
 
+/**
+ * Updates a room's starter code given the existing and new room state.
+ * @param existing The existing room state
+ * @param room The new room state
+ */
 async function updateStarterCode({ starter_code = "", groups = [] }: Partial<Room>, room: Room) {
   const changed = starter_code !== room.starter_code;
 
@@ -291,7 +298,7 @@ async function updateStarterCode({ starter_code = "", groups = [] }: Partial<Roo
   /* Find which groups need an update */
   const needsUpdate = await groupsNeedingUpdate();
   if (needsUpdate.length === 0) return;
-  
+
   /* Generate YJS update blob for starter code */
   const ydoc = new Doc();
   ydoc.getText("codemirror").insert(0, room.starter_code);

@@ -42,18 +42,6 @@ export type EditorConfig = {
   max?: number;
 };
 
-export type EditorHookState = {
-  /**
-   * The editor view. `undefined` while editor is loading.
-   */
-  editor?: EditorView;
-
-  /**
-   * Reloads the editor.
-   */
-  reloadEditor: () => void;
-};
-
 const EditorTheme = new Compartment();
 const EditorLanguage = new Compartment();
 
@@ -108,9 +96,8 @@ function maxLength(max?: number): Extension {
   });
 }
 
-export function useEditor(config: EditorConfig): EditorHookState {
+export function useEditor(config: EditorConfig) {
   const [editorView, setEditorView] = useState<EditorView>();
-  const [counter, setCounter] = useState(0);
 
   /* Theme */
   const theme = useTheme();
@@ -140,7 +127,7 @@ export function useEditor(config: EditorConfig): EditorHookState {
       config.onDestroy?.();
       setEditorView(undefined);
     };
-  }, [counter, config.onCreate]);
+  }, [config.onCreate]);
 
   /* Update the editor theme when the MUI theme changes */
   useEffect(() => {
@@ -171,10 +158,7 @@ export function useEditor(config: EditorConfig): EditorHookState {
     });
   }, [editorView, config.language]);
 
-  return {
-    editor: editorView,
-    reloadEditor: () => setCounter((s) => s + 1),
-  };
+  return editorView;
 }
 
 export type EditorStylesProps = Omit<BoxProps, "sx"> & {

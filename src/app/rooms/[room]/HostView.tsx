@@ -1,7 +1,6 @@
 "use client";
 
 import RoomEditor from "@/components/code/RoomEditor";
-import { useRouter } from "@/components/navigation/AppProgressBar";
 import { useRoom } from "@/state/room";
 import { useUserState } from "@/state/user";
 import { Room } from "@/types/Room";
@@ -14,7 +13,7 @@ import { useEffect } from "react";
  */
 export default function HostView({ room }: { room: Room }) {
   const updateUser = useUserState((state) => state.updateUser);
-  useRoom(room, useRouter(), true);
+  useRoom(room);
 
   useEffect(() => {
     updateUser({ isHost: true, name: "Host", color: "#515151" });
