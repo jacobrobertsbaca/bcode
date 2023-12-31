@@ -17,6 +17,12 @@ import { EditorStyles, useEditor } from "./EditorBase";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
 
+/*
+ * ============================================================================
+ *  Constants
+ * ============================================================================
+ */
+
 /**
  * Maximum allowed characters to be typed in the editor.
  * This prevents excessively large documents.
@@ -48,7 +54,52 @@ const kReloadWaitMs = 2500;
  */
 const kSavedDisplayMs = 2000;
 
-function EditorTitle({ group, saving }: { group?: RoomGroup; saving: NodeJS.Timeout | boolean }) {
+/*
+ * ============================================================================
+ *  Utility Functions
+ * ============================================================================
+ */
+
+type Timer = ReturnType<typeof setTimeout>;
+
+function useSaved() {
+  /*
+   * To keep track of the document save status and display this to the user, we keep track of several
+   * values.
+   *
+   *    - `true` if the provider is saving to the database
+   *    - `false` if the provider has saved and we are showing this in the UI temporarily.
+   *    - `undefined` if the provider has saved.
+   *
+   */
+  const [saving, setSaving] = useState<boolean>();
+  const savedTimer = useRef<Timer>();
+  const onSaveChanged = useCallback((value: boolean, showSaved: boolean) => {
+    clearTimeout(savedTimer.current);
+    if (value) return setSaving(true);
+    if (!showSaved) return setSaving(undefined);
+    savedTimer.current = setTimeout(() => setSaving(undefined), kSavedDisplayMs);
+    setSaving(false);
+  }, []);
+
+  return [saving, onSaveChanged] as const;
+}
+
+function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
+  provider.awareness.setLocalStateField("user", {
+    name: user.name,
+    color: user.color,
+    colorLight: alpha(user.color, 0.2),
+  });
+}
+
+/*
+ * ============================================================================
+ *  Editor Components
+ * ============================================================================
+ */
+
+function EditorTitle({ group, saving }: { group?: RoomGroup; saving?: boolean }) {
   const theme = useTheme();
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
@@ -58,21 +109,13 @@ function EditorTitle({ group, saving }: { group?: RoomGroup; saving: NodeJS.Time
         color="text.secondary"
         sx={{
           transition: "opacity 300ms",
-          opacity: saving ? 1 : 0,
+          opacity: saving !== undefined ? 1 : 0,
         }}
       >
         {saving === true ? "Saving..." : "Saved"}
       </Typography>
     </Stack>
   );
-}
-
-function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
-  provider.awareness.setLocalStateField("user", {
-    name: user.name,
-    color: user.color,
-    colorLight: alpha(user.color, 0.2),
-  });
 }
 
 type RoomEditorProps = EditorFrameProps & {
@@ -89,25 +132,8 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   /* Editor State */
   const provider = useRef<SupabaseProvider>();
   const [providerStatus, setProviderStatus] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
-  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout>();
-
-  /*
-   * To keep track of the document save status and display this to the user, we keep track of several
-   * values.
-   *
-   *    - `true` if the provider is saving to the database
-   *    - A `Timeout` object if the provider has saved and we are showing this in the UI temporarily.
-   *    - `false` if the provider has saved.
-   *
-   */
-  const [saving, setSaving] = useState<NodeJS.Timeout | boolean>(false);
-  const onSaveChanged = useCallback((saving: boolean, showSaved: boolean) => {
-    setSaving((s) => {
-      if (typeof s !== "boolean") clearTimeout(s);
-      if (saving || !showSaved) return saving;
-      return setTimeout(() => setSaving(false), kSavedDisplayMs);
-    });
-  }, []);
+  const [refreshTimeout, setRefreshTimeout] = useState<Timer>();
+  const [saving, setSaving] = useSaved();
 
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
@@ -149,9 +175,9 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         if (status === ConnectionStatus.Connected) updateProviderUser(instance, user);
       });
 
-      onSaveChanged(false, false);
+      setSaving(false, false);
       provider.current.on(SupabaseProviderEvents.Saving, (instance: SupabaseProvider, saving: boolean) => {
-        onSaveChanged(saving, true);
+        setSaving(saving, true);
       });
 
       return {
@@ -163,7 +189,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     async onDestroy() {
       await provider.current?.destroy();
       setProviderStatus(ConnectionStatus.Connecting);
-      onSaveChanged(false, false);
+      setSaving(false, false);
     },
   });
 
@@ -188,13 +214,13 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
     if (room.starter_code === starterCode.current) return;
     starterCode.current = room.starter_code;
     const snackbar = !user.isHost && enqueueSnackbar("The host updated the starter code.");
-    setRefreshTimeout((t) => {
-      clearTimeout(t);
-      return setTimeout(() => {
+    clearTimeout(refreshTimeout);
+    setRefreshTimeout(
+      setTimeout(() => {
         setRefreshTimeout(undefined);
         if (snackbar) closeSnackbar(snackbar);
-      }, kReloadWaitMs);
-    });
+      }, kReloadWaitMs)
+    );
 
     /* Disable document saving and resyncing while reloading so we don't push stale updates */
     if (provider.current) {
