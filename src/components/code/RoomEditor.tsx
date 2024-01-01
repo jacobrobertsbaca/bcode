@@ -141,6 +141,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   useEditor({
     language: room.language,
     max: kEditorMaxChars,
+    notifyMax: true,
 
     onCreate: useCallback(() => {
       // If we are waiting to reload the editor, do nothing.

@@ -12,6 +12,7 @@ import { indentWithTab } from "@codemirror/commands";
 import { languages } from "@codemirror/language-data";
 import { YSyncConfig } from "y-codemirror.next";
 import { SupportedLanguages } from "@/types/Room";
+import { SnackbarKey, closeSnackbar, enqueueSnackbar } from "notistack";
 
 /**
  * Options for creating an interactive editor.
@@ -40,6 +41,12 @@ export type EditorConfig = {
    * Maximum number of characters allowed to be entered into the editor.
    */
   max?: number;
+
+  /**
+   * Whether or not to show a notification when user attempts to type more than the maximum
+   * number of characters.
+   */
+  notifyMax?: boolean;
 };
 
 const EditorTheme = new Compartment();
@@ -62,12 +69,28 @@ function isRemote(tr: Transaction): boolean {
   return annotations.some((a) => a.value instanceof YSyncConfig);
 }
 
-function maxLength(max?: number): Extension {
+function maxLength(max: number | undefined, notify: boolean): Extension {
   if (max === undefined) return [];
+
+  let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+  let snackbar: SnackbarKey | undefined = undefined;
+
   return EditorState.transactionFilter.of((tr) => {
     if (!tr.docChanged) return tr;
     if (isRemote(tr)) return tr; // Ignore remote updates
     if (tr.newDoc.length <= max) return tr;
+
+    if (notify) {
+      if (!snackbar)
+        snackbar = enqueueSnackbar("You've reached the maximum number of characters", {
+          persist: true,
+        });
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        closeSnackbar(snackbar);
+        snackbar = undefined;
+      }, 5000);
+    }
 
     /* Get changed ranges, sorted from latest to earliest in the document */
     const ranges: [from: number, to: number][] = [];
@@ -116,7 +139,7 @@ export function useEditor(config: EditorConfig) {
           keymap.of([indentWithTab]),
           EditorTheme.of(editorTheme),
           EditorLanguage.of([]),
-          maxLength(config.max),
+          maxLength(config.max, config.notifyMax ?? false),
         ].concat(extensions ?? []),
         ...rest,
       })
