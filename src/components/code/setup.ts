@@ -47,9 +47,7 @@ export const basicSetup: Extension = (() => [
   keymap.of([
     ...closeBracketsKeymap,
     ...defaultKeymap,
-    ...searchKeymap,
     ...historyKeymap,
     ...foldKeymap,
-    ...lintKeymap,
   ]),
 ])();

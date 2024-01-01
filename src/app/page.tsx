@@ -16,7 +16,7 @@ export default function HomePage() {
       />
       <Stack alignItems="center" spacing={2}>
         <Logo />
-        <Typography>create collaborative section problems for CS106B</Typography>
+        <Typography>create collaborative section problems for CS106A/B</Typography>
         <SignInButton />
       </Stack>
     </Container>

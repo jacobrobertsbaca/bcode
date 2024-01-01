@@ -3,7 +3,7 @@
 import { Room, RoomSchema, RoomSchemaNew, groupsForCount } from "@/types/Room";
 import { Box, Divider, Drawer, IconButton, Stack, SvgIcon, Typography, styled } from "@mui/material";
 import { Formik } from "formik";
-import React, { Ref, forwardRef, useRef, useState } from "react";
+import React, { Ref, forwardRef, useState } from "react";
 
 import PlusIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import XMarkIcon from "@heroicons/react/24/solid/XMarkIcon";
@@ -11,9 +11,8 @@ import { toFormikValidationSchema } from "zod-formik-adapter";
 import RoomSidebarInput from "./RoomSidebarInput";
 import { enqueueSnackbar } from "notistack";
 import { useRouter } from "@/components/navigation/AppProgressBar";
-import { useRoomState } from "@/state/room";
 import { upsertRoom } from "../actions";
-import { SupportedLanguages } from "@/components/code/languages";
+import { SupportedLanguages } from "@/types/Room";
 
 import SimpleBarCore from "simplebar-core";
 import SimpleBar from "simplebar-react";
@@ -43,7 +42,6 @@ type RoomSidebarProps = {
 export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
   const exists = !!room.code;
   const router = useRouter();
-  const updatePeers = useRoomState((state) => state.update);
   const [scrolled, setScrolled] = useState(false);
 
   /* Show a shadow on header when user scrolls */
@@ -60,7 +58,7 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
       onClose={() => setOpen(false)}
       sx={{ zIndex: 1050 }}
       PaperProps={{
-        sx: { width: { xs: 1, sm: 600 }, border: "none", overflow: "hidden" },
+        sx: { width: { xs: 1, sm: 650 }, border: "none", overflow: "hidden" },
       }}
     >
       <Formik
@@ -78,7 +76,6 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
               const { error } = await upsertRoom(room);
               if (error) throw new Error(error.message);
               if (exists) {
-                updatePeers();
                 router.refresh();
                 setOpen(false);
               } else {
@@ -135,6 +132,7 @@ export function AddRoomButton() {
           code: "",
           name: "",
           language: SupportedLanguages[0].name,
+          starter_code: "",
           groups: groupsForCount(1),
           created: new Date().toISOString(),
         }}

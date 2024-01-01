@@ -26,12 +26,11 @@ import {
   Typography,
 } from "@mui/material";
 import { Formik } from "formik";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ConnectionStatus } from "@/types/Connection";
 import { random } from "lodash";
-import { useRouter } from "@/components/navigation/AppProgressBar";
 
 /**
  * Available colors for guests to use.
@@ -210,7 +209,7 @@ function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
  */
 export default function GuestView({ room }: { room: Room }) {
   const [view, setView] = useState(GuestViewStatus.Name);
-  useRoom(room, useRouter(), false);
+  useRoom(room);
 
   return (
     <Stack spacing={2}>

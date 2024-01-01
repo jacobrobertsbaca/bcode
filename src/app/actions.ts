@@ -12,10 +12,12 @@
  */
 
 import createServer from "@/provider/server";
-import { Room, RoomSchema } from "@/types/Room";
+import { RoomChannelEvents } from "@/state/events";
+import { Room, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
+import { difference } from "lodash";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
-import { decodeUpdateV2, mergeUpdatesV2 } from "yjs";
+import { decodeUpdateV2, mergeUpdatesV2, Doc, encodeStateAsUpdateV2 } from "yjs";
 
 /*
  * ============================================================================
@@ -88,6 +90,40 @@ function decodeBytes(encoded: string): Buffer {
   return Buffer.from(encoded.slice(2), "hex");
 }
 
+/**
+ * Revalidates all Next.js routes associated with the given room code.
+ * @param code The room code
+ */
+function revalidateRoomPaths(code: string) {
+  revalidatePath("/rooms");
+  revalidatePath(`/rooms/${code}`);
+  revalidatePath(`/${code}`);
+  revalidatePath(`/code/${code}`);
+}
+
+/**
+ * Notifies the participants of a room that the room has been updated.
+ * @param code The room code
+ */
+async function notifyParticipants(code: string) {
+  /* Connect to channel */
+  const channel = createServer().channel(code, { config: { broadcast: { ack: true } } });
+  await new Promise<void>((resolve, reject) =>
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") resolve();
+      else reject(`Failed to subscribe to Supabase channel: ${status}`);
+    })
+  );
+
+  /* Send update message */
+  const result = await channel.send({
+    type: "broadcast",
+    event: RoomChannelEvents.Update,
+  });
+
+  if (result !== "ok") throw new Error(`Failed to update participants: ${result}`);
+}
+
 /*
  * ============================================================================
  *  Document State Actions
@@ -102,17 +138,9 @@ function decodeBytes(encoded: string): Buffer {
 export async function saveDocument(channel: string, update: number[]): Promise<void> {
   /* When saving to a channel, we need to ensure that the associated room exists
    * and has the specified group number.
-   *
-   * All channel names have the format {ROOM}:{GROUP}.
    */
 
-  const pattern = /^([a-zA-Z0-9-]+):([0-9]+)$/;
-  const match = pattern.exec(channel);
-  if (!match) throw new Error("Invalid channel string");
-
-  const code = match[1];
-  const group = parseInt(match[2], 10);
-
+  const [code, group] = parseChannelString(channel);
   const { data: room, error } = await getRoom(code);
   if (error) throw new Error(error.message);
   if (!room) throw new Error("No such room");
@@ -166,7 +194,10 @@ export async function loadDocument(channel: string): Promise<number[] | null> {
 export async function getRooms(code?: string) {
   try {
     const supabase = createServer();
-    let query = supabase.from(Tables.Rooms).select("code, name, language, groups, created").throwOnError();
+    let query = supabase
+      .from(Tables.Rooms)
+      .select("code, name, language, starter_code, groups, created")
+      .throwOnError();
     if (code !== undefined) query = query.eq("code", code);
     else {
       /* Get current user */
@@ -228,6 +259,56 @@ export async function roomExists(code: string, owner?: string) {
 }
 
 /**
+ * Updates a room's starter code given the existing and new room state.
+ * @param existing The existing room state
+ * @param room The new room state
+ */
+async function updateStarterCode({ starter_code = "", groups = [] }: Partial<Room>, room: Room) {
+  const changed = starter_code !== room.starter_code;
+
+  /* Determines which groups need to be updated.
+   *  - If starter code changes, all groups must be updated.
+   *  - Otherwise, only the added groups need to be updated, and only if they don't already have data. */
+  async function groupsNeedingUpdate(): Promise<number[]> {
+    const allGroups = room.groups.map((g) => g.no);
+    if (changed) return allGroups;
+    const newGroups = difference(allGroups, groups.map((g) => g.no)); // prettier-ignore
+    if (newGroups.length === 0) return newGroups;
+
+    /* Determine if any of new groups have existing data. If so, exclude them */
+    const supabase = createServer();
+    const { data } = await supabase
+      .from(Tables.AggregateUpdates)
+      .select("channel")
+      .like("channel", channelMask(room))
+      .throwOnError();
+
+    return difference(
+      newGroups,
+      data!.map(({ channel }) => parseChannelString(channel)[1])
+    );
+  }
+
+  /* Clear all code for existing rooms if starter code changes */
+  if (changed) {
+    const supabase = createServer();
+    await supabase.from(Tables.Updates).delete().like("channel", channelMask(room)).throwOnError();
+  }
+
+  /* Find which groups need an update */
+  const needsUpdate = await groupsNeedingUpdate();
+  if (needsUpdate.length === 0) return;
+
+  /* Generate YJS update blob for starter code */
+  const ydoc = new Doc();
+  ydoc.getText("codemirror").insert(0, room.starter_code);
+  const update = Array.from(encodeStateAsUpdateV2(ydoc));
+
+  /* Save all updated groups concurrently */
+  await Promise.all(needsUpdate.map((g) => saveDocument(channelString(room, g), update)));
+}
+
+/**
  * Upserts a room.
  * @param room The room object
  *
@@ -249,7 +330,7 @@ export async function upsertRoom(room: Room) {
     /* Get existing room with this code, if any */
     const { data: existing } = await supabase
       .from(Tables.Rooms)
-      .select("owner, created, groups")
+      .select("owner, starter_code, created, groups")
       .eq("code", room.code)
       .maybeSingle()
       .throwOnError();
@@ -263,10 +344,13 @@ export async function upsertRoom(room: Room) {
     if (existing) await supabase.from(Tables.Rooms).update(row).eq("code", room.code).throwOnError();
     else await supabase.from(Tables.Rooms).insert(row).throwOnError();
 
-    revalidatePath("/rooms");
-    revalidatePath(`/rooms/${room.code}`);
-    revalidatePath(`/${room.code}`);
-    revalidatePath(`/code/${room.code}`);
+    /* Update room starter code */
+    await updateStarterCode(existing ?? {}, room);
+
+    /* Notify participants of room update */
+    revalidateRoomPaths(room.code);
+    if (existing) await notifyParticipants(room.code);
+
     return success();
   } catch (err: any) {
     return failure(500, err.message);
@@ -297,10 +381,13 @@ export async function deleteRoom(code: string) {
     /* Delete the associated room row and code */
     await Promise.all([
       supabase.from(Tables.Rooms).delete().eq("code", code).throwOnError(),
-      supabase.from(Tables.Updates).delete().like("channel", `${code}:%`).throwOnError(),
+      supabase.from(Tables.Updates).delete().like("channel", channelMask(code)).throwOnError(),
     ]);
 
-    revalidatePath("/rooms");
+    /* Notify participants of room delete */
+    revalidateRoomPaths(code);
+    await notifyParticipants(code);
+
     return success();
   } catch (err: any) {
     return failure(500, err.message);

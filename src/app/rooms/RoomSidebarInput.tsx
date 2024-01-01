@@ -2,14 +2,37 @@
 
 import FormikTextField from "@/components/FormikTextField";
 import { courier } from "@/components/ThemeRegistry/fonts";
-import { Room, groupsForCount } from "@/types/Room";
+import { MaxStarterCodeLength, Room, SupportedLanguages, groupsForCount } from "@/types/Room";
 import { LoadingButton } from "@mui/lab";
-import { Box, MenuItem, Slider, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Collapse,
+  MenuItem,
+  Slider,
+  Stack,
+  Tooltip as MuiTooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+  TooltipProps,
+} from "@mui/material";
 import { useFormikContext } from "formik";
 import { debounce, isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { minifyURL } from "../util";
-import { SupportedLanguages } from "@/components/code/languages";
+import FormikEditor from "@/components/code/FormikEditor";
+
+function Tooltip({ children, ...rest }: TooltipProps) {
+  const theme = useTheme();
+  const sm = useMediaQuery(theme.breakpoints.up(900));
+  const placement = sm ? "left" : "bottom";
+  return (
+    <MuiTooltip disableInteractive placement={placement} arrow {...rest}>
+      {children}
+    </MuiTooltip>
+  );
+}
 
 function maskCodeInput(code: string): string {
   return code
@@ -24,11 +47,6 @@ export default function RoomSidebarInput() {
   const exists = !!formik.initialValues.code;
   const [codeModified, setCodeModified] = useState(false);
 
-  // Use breakpoint for tooltip placement
-  const theme = useTheme();
-  const sm = useMediaQuery(theme.breakpoints.up(900));
-  const placement = sm ? "left" : "bottom";
-
   const debouncedValidate = useMemo(
     () => debounce(formik.validateForm, 500, { trailing: true }),
     [formik.validateForm]
@@ -41,8 +59,6 @@ export default function RoomSidebarInput() {
     <Stack m={3} spacing={2}>
       <Typography variant="subtitle2">Room Info</Typography>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
@@ -71,8 +87,6 @@ export default function RoomSidebarInput() {
         />
       </Tooltip>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
@@ -110,29 +124,15 @@ export default function RoomSidebarInput() {
           }}
         />
       </Tooltip>
-      <Tooltip
-        placement={placement}
-        arrow
-        title={
-          <Typography variant="inherit" component="ul" px="24px" py="8px">
-            <Typography variant="inherit" component="li">
-              This language will be used for code highlighting.
-            </Typography>
-          </Typography>
-        }
-      >
-        <FormikTextField select name="language" label="Language">
-          {SupportedLanguages.map((sl) => (
-            <MenuItem key={sl.name} value={sl.name}>
-              {sl.label ?? sl.cm}
-            </MenuItem>
-          ))}
-        </FormikTextField>
-      </Tooltip>
+      <FormikTextField select name="language" label="Language">
+        {SupportedLanguages.map((sl) => (
+          <MenuItem key={sl.name} value={sl.name}>
+            {sl.label ?? sl.cm}
+          </MenuItem>
+        ))}
+      </FormikTextField>
       <Typography variant="subtitle2">Groups</Typography>
       <Tooltip
-        placement={placement}
-        arrow
         title={
           <Typography variant="inherit" component="ul" px="24px" py="8px">
             <Typography variant="inherit" component="li">
@@ -160,6 +160,42 @@ export default function RoomSidebarInput() {
           />
         </Box>
       </Tooltip>
+      <Tooltip
+        title={
+          <Typography variant="inherit" component="ul" px="24px" py="8px">
+            <Typography variant="inherit" component="li">
+              Each group will begin with this starter code (optional).
+            </Typography>
+            {exists && (
+              <Typography variant="inherit" component="li" fontWeight={600}>
+                Changing this will overwrite any existing code!
+              </Typography>
+            )}
+          </Typography>
+        }
+      >
+        <Box>
+          <FormikEditor
+            placeholder="Add starter code here"
+            language={formik.values.language}
+            minHeight="100px"
+            name="starter_code"
+            max={MaxStarterCodeLength}
+          />
+        </Box>
+      </Tooltip>
+      <Collapse
+        in={exists && formik.initialValues.starter_code !== formik.values.starter_code}
+        sx={{ mt: "0 !important", ".MuiCollapse-wrapperInner": { mt: 2 } }}
+      >
+        <Alert severity="warning">
+          Changing the starter code will{" "}
+          <Typography display="inline" variant="inherit" fontWeight={600}>
+            permanently overwrite
+          </Typography>{" "}
+          any code that has been written for this room.
+        </Alert>
+      </Collapse>
       <LoadingButton
         variant="outlined"
         size="large"
