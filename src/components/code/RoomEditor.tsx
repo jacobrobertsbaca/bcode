@@ -16,6 +16,7 @@ import { channelString, type RoomGroup, type Room } from "@/types/Room";
 import { EditorStyles, useEditor } from "./EditorBase";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
+import { prod } from "@/app/util";
 
 /*
  * ============================================================================
@@ -156,6 +157,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
 
       provider.current = new SupabaseProvider(ydoc, supabase, {
         channel,
+        log: !prod(),
 
         async loadDocument() {
           const state = await loadDocument(channel);

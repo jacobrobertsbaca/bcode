@@ -14,3 +14,11 @@ export function minifyURL(url: string) {
     return url;
   }
 }
+
+/**
+ * Whether or not we are running in production.
+ * @returns `true` in a production build, `false` otherwise.
+ */
+export function prod() {
+  return process.env.NODE_ENV === "production";
+}

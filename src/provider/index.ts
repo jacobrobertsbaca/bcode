@@ -29,27 +29,33 @@ export type SupabaseProviderConfig = {
 
   /**
    * Whether or not resyncing with peers is enabled.
-   * Defaults to `true`.
+   * @default true
    */
   resync: boolean;
 
   /**
    * Whether or not saving the document is enabled.
-   * Defaults to `true`.
+   * @default true
    */
   save: boolean;
 
   /**
-   * How often the provider should do a complete resync with peers in milliseconds.
-   * Must be positive. Defaults to 20,000 ms.
+   * How often the provider should do a complete resync with peers in milliseconds. Must be positive.
+   * @default 20000
    */
   readonly resyncInterval: number;
 
   /**
-   * How often to save the document in milliseconds.
-   * Must be positive. Defaults to 2,500 ms.
+   * How often to save the document in milliseconds. Must be positive.
+   * @default 2500
    */
   readonly saveInterval: number;
+
+  /**
+   * Whether or not the provider should log status updates to the console.
+   * @default true
+   */
+  readonly log: boolean;
 };
 
 export enum SupabaseProviderEvents {
@@ -90,12 +96,12 @@ export class SupabaseProvider extends EventEmitter {
 
   constructor(private doc: Y.Doc, private supabase: SupabaseClient, config: ProviderConfig) {
     super();
-    this.logger = debug("y-" + doc.clientID);
-    this.logger.enabled = true;
-    this.logger(`Creating ${SupabaseProvider.name} for document ${this.doc.guid}`);
-
     this.config = this.validateConfig(config);
     this.awareness = new AwarenessProtocol.Awareness(doc);
+
+    this.logger = debug("y-" + doc.clientID);
+    this.logger.enabled = this.config.log;
+    this.logger(`Creating ${SupabaseProvider.name} for document ${this.doc.guid}`);
 
     /* Set up resyncInterval */
     this.resync = setInterval(this.sendResyncUpdate.bind(this), this.config.resyncInterval);
@@ -195,6 +201,7 @@ export class SupabaseProvider extends EventEmitter {
         resync: true,
         resyncInterval: DefaultResyncMs,
         saveInterval: DefaultSaveMs,
+        log: true
       }
     );
 

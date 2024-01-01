@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { RoomChannelEvents } from "./events";
 import { useRouter } from "@/components/navigation/AppProgressBar";
+import { prod } from "@/app/util";
 
 interface RoomMethods {
   join: (room: Room, router: AppRouterInstance) => Promise<void>;
@@ -32,7 +33,7 @@ interface RoomStateConnected {
 export type RoomState = RoomMethods & (RoomStateConnected | RoomStateDisconnected);
 
 const logger = debug("[ROOM]");
-logger.enabled = true;
+logger.enabled = !prod();
 
 export const useRoomState = create<RoomState>((set, get) => ({
   users: null,
@@ -161,7 +162,7 @@ export function useRoom(room: Room) {
     function onVisibilityChanged() {
       if (document.visibilityState !== "visible") return;
       if (roomState.status === ConnectionStatus.Connecting || roomState.status === ConnectionStatus.Connected) return;
-      console.log("Reconnecting to room after disconnecting...");
+      logger("Reconnecting to room after disconnecting...");
       router.refresh();
       roomState.join(room, router);
     }
