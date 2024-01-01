@@ -155,4 +155,18 @@ export function useRoom(room: Room) {
       enqueueSnackbar("The host closed your group.");
     }
   }, [room, userState]);
+
+  /* Attempt to reconnect on document becoming visible */
+  useEffect(() => {
+    function onVisibilityChanged() {
+      if (document.visibilityState !== "visible") return;
+      if (roomState.status === ConnectionStatus.Connecting || roomState.status === ConnectionStatus.Connected) return;
+      console.log("Reconnecting to room after disconnecting...");
+      router.refresh();
+      roomState.join(room, router);
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChanged);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChanged);
+  }, [roomState.status]);
 }
