@@ -47,7 +47,7 @@ export default function ThemeRegistry({ theme, children }: { theme?: string; chi
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={muiTheme}>
           {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-          <CssBaseline />
+          <CssBaseline enableColorScheme />
           <SnackbarProvider />
           {children}
         </ThemeProvider>

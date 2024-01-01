@@ -16,13 +16,18 @@ import { SupportedLanguages } from "@/types/Room";
 
 import SimpleBarCore from "simplebar-core";
 import SimpleBar from "simplebar-react";
-import 'simplebar-react/dist/simplebar.min.css';
+import "simplebar-react/dist/simplebar.min.css";
 
-const StyledSimpleBar = styled(SimpleBar)``;
+const StyledSimpleBar = styled(SimpleBar)(({ theme }) => ({
+  ".simplebar-scrollbar::before": {
+    backgroundColor: theme.palette.background.contrast,
+  },
+}));
+
 const Form = styled("form")({
   display: "flex",
   flexDirection: "column",
-  height: "100%"
+  height: "100%",
 });
 
 const Scrollbar = forwardRef(({ children }: { children: React.ReactNode }, ref: Ref<SimpleBarCore | null>) => (
@@ -48,7 +53,7 @@ export default function RoomSidebar({ room, open, setOpen }: RoomSidebarProps) {
   function onScrollMounted(bar: SimpleBarCore | null) {
     const scrollEl = bar?.getScrollElement();
     const scrollHandler = () => setScrolled((scrollEl?.scrollTop ?? 0) > 15);
-    scrollEl?.addEventListener('scroll', scrollHandler);
+    scrollEl?.addEventListener("scroll", scrollHandler);
   }
 
   return (

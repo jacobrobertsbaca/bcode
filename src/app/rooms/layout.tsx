@@ -16,9 +16,9 @@ export default async function RoomsLayout({ children }: { children: React.ReactN
   if (!user) redirect("/");
 
   return (
-    <Box>
+    <>
       <Navigation nav />
       {children}
-    </Box>
+    </>
   );
 }
