@@ -17,7 +17,7 @@ type EditorOnlineProps = StackProps & {
  * Displays avatars for each of the users connected to a group in the current room.
  * Renders nothing if not connected to a room, if the given group number doesn't exist in the room,
  * or if there are no users in the room.
- * 
+ *
  * Alternatively, if the group number is undefined, shows all users in the room.
  */
 export default function EditorOnline({ group, ...rest }: EditorOnlineProps) {
@@ -26,7 +26,9 @@ export default function EditorOnline({ group, ...rest }: EditorOnlineProps) {
   const userId = useUserState((state) => state.user.id);
   if (roomStatus != ConnectionStatus.Connected) return null;
   if (!usersMap || (group !== undefined && !(group in usersMap))) return null;
-  const users = group !== undefined ? usersMap[group] : Object.values(usersMap).flatMap(u => u);
+  const users = [...(group !== undefined ? usersMap[group] : Object.values(usersMap).flat())];
+  if (users.length === 0) return null;
+  users.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Stack direction="row" spacing={-0.4} {...rest}>

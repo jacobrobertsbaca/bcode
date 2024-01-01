@@ -1,5 +1,7 @@
 import { v4 } from "uuid";
 import { create } from "zustand";
+import { useRoomState } from "./room";
+import { remove } from "lodash";
 
 /**
  * Keeps track of details of a connected user, such as their name and color.
@@ -54,7 +56,19 @@ export const useUserState = create<UserState>((set, get) => {
     },
     
     updateUser(changes) {
-      set({ user: { ...get().user, ...changes }});
+      const user = get().user;
+
+      /* Optimistic update room group if group changes to avoid slight flicker */
+      const groups = useRoomState.getState().users;
+      if (groups && changes.group !== undefined) {
+        Object.entries(groups).forEach(([key, users]) => {
+          const group = parseInt(key, 10);
+          if (group === user.group) remove(users, (u) => u.id === user.id);
+          if (group === changes.group) users.push(user);
+        });
+      }
+
+      set({ user: { ...user, ...changes } });
     },
   };
 });
