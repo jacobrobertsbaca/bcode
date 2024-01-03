@@ -16,8 +16,6 @@ import {
   useMediaQuery,
   useTheme,
   TooltipProps,
-  FormGroup,
-  FormControlLabel,
   Switch,
 } from "@mui/material";
 import { useFormikContext } from "formik";
@@ -204,10 +202,16 @@ export default function RoomSidebarInput() {
         <Stack>
           <Typography variant="subtitle2">Lock Room</Typography>
           <Typography variant="caption" color="text.secondary">
-            Prevent guests from modifying the room
+            Prevent guests from making changes to the room
           </Typography>
         </Stack>
-        <Switch defaultChecked />
+        <Stack direction="row" alignItems="center">
+          <Switch
+            defaultChecked
+            checked={formik.values.locked}
+            onChange={(e) => formik.setFieldValue("locked", e.target.checked)}
+          />
+        </Stack>
       </Stack>
 
       <LoadingButton

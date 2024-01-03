@@ -103,6 +103,15 @@ export default function createTheme(mode: "light" | "dark") {
         },
       },
     },
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          "& :not(.Mui-checked) > .MuiSwitch-thumb": {
+            backgroundColor: theme.palette.augmentColor({ color: { main: theme.palette.background.paper } }).light,
+          },
+        },
+      },
+    },
   };
 
   return theme;

@@ -1,10 +1,10 @@
 "use client";
 
-import { CardHeader, Stack, Typography, alpha, useTheme } from "@mui/material";
+import { CardHeader, Stack, SvgIcon, Tooltip, Typography, alpha } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
-import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
+import { ReadWriteMode, SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 import { yCollab } from "y-codemirror.next";
 import EditorFrame, { EditorFrameProps } from "./EditorFrame";
 import { ConnectionStatus } from "@/types/Connection";
@@ -17,6 +17,7 @@ import { EditorStyles, useEditor } from "./EditorBase";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
 import { prod } from "@/app/util";
+import LockClosed from "@heroicons/react/20/solid/LockClosedIcon";
 
 /*
  * ============================================================================
@@ -100,11 +101,18 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
  * ============================================================================
  */
 
-function EditorTitle({ group, saving }: { group?: RoomGroup; saving?: boolean }) {
-  const theme = useTheme();
+function EditorTitle({ room, group, saving }: { room: Room; group?: RoomGroup; saving?: boolean }) {
+  const isHost = useUserState((state) => state.user.isHost);
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
       <Typography variant="inherit">{group?.name}</Typography>
+      {room.locked && (
+        <Tooltip arrow title={`The room has been locked${isHost ? ". Only you can edit it" : ""}`}>
+          <SvgIcon sx={{ fontSize: "0.66em" }}>
+            <LockClosed />
+          </SvgIcon>
+        </Tooltip>
+      )}
       <Typography
         variant="caption"
         color="text.secondary"
@@ -138,11 +146,13 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
 
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
+  const readOnly = !user.isHost && room.locked;
 
   useEditor({
     language: room.language,
     max: kEditorMaxChars,
     notifyMax: true,
+    readOnly,
 
     onCreate: useCallback(() => {
       // If we are waiting to reload the editor, do nothing.
@@ -158,6 +168,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
       provider.current = new SupabaseProvider(ydoc, supabase, {
         channel,
         log: !prod(),
+        rw: readOnly ? ReadWriteMode.ReadOnly : ReadWriteMode.ReadWrite,
 
         async loadDocument() {
           const state = await loadDocument(channel);
@@ -195,6 +206,12 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
       setSaving(false, false);
     },
   });
+
+  /* Update provider read-only mode when read-only changes */
+  useEffect(() => {
+    if (!provider.current) return;
+    provider.current.config.rw = readOnly ? ReadWriteMode.ReadOnly : ReadWriteMode.ReadWrite;
+  }, [readOnly]);
 
   /* Update the awareness user other people see (cursor color, name, etc.) if it changes */
   useEffect(() => {
@@ -248,7 +265,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   return (
     <EditorFrame sx={{ minHeight: kEditorHeightPx }}>
       <CardHeader
-        title={<EditorTitle group={room?.groups.find((g) => g.no === group)} saving={saving} />}
+        title={<EditorTitle room={room} group={room?.groups.find((g) => g.no === group)} saving={saving} />}
         titleTypographyProps={{ variant: "h6", fontWeight: 400 }}
         action={
           <Stack direction="row" alignItems="center" spacing={1}>

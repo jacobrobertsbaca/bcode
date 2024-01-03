@@ -13,11 +13,17 @@
 
 import createServer from "@/provider/server";
 import { RoomChannelEvents } from "@/state/events";
-import { Room, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
+import { Room, RoomGroup, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
 import { difference } from "lodash";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { decodeUpdateV2, mergeUpdatesV2, Doc, encodeStateAsUpdateV2 } from "yjs";
+
+/**
+ * Millisecond grace period when saving updates to a room that is locked.
+ * See the comment in {@link saveDocument} for more information.
+ */
+const LockSaveGracePeriodMs = 5000;
 
 /*
  * ============================================================================
@@ -140,11 +146,31 @@ export async function saveDocument(channel: string, update: number[]): Promise<v
    * and has the specified group number.
    */
 
+  const updateTs = new Date();
   const [code, group] = parseChannelString(channel);
-  const { data: room, error } = await getRoom(code);
-  if (error) throw new Error(error.message);
+
+  const supabase = createServer();
+  const { data: room } = await supabase.from(Tables.Rooms)
+    .select("groups, lock_time, owner")
+    .eq("code", code)
+    .maybeSingle()
+    .throwOnError();
+
   if (!room) throw new Error("No such room");
-  if (!room.groups.some((g) => g.no === group)) throw new Error("No such group in room");
+  if (!room.groups.some((g: RoomGroup) => g.no === group)) throw new Error("No such group in room");
+
+  /* Authorize user.
+   * 
+   * If the room is unlocked, always allow updates.
+   * If the room is locked, always allow updates if requester is the host.
+   * Otherwise, only allow updates if they are made within a grace period of the time that
+   * the room was locked. This policy ensures that lingering updates made at the moment the room
+   * was locked are saved to the database, but any updates thereafter are rejected.
+   */
+  if (room.lock_time && (await getUser()) !== room.owner) {
+    const lockTs = new Date(room.lock_time);
+    if (updateTs.getTime() - lockTs.getTime() > LockSaveGracePeriodMs) throw new Error("Room is locked");
+  }
 
   /*
    * Validate YJS update by calling `decodeUpdate`. If YJS throws an error
@@ -196,7 +222,7 @@ export async function getRooms(code?: string) {
     const supabase = createServer();
     let query = supabase
       .from(Tables.Rooms)
-      .select("code, name, language, starter_code, groups, created")
+      .select("code, name, language, starter_code, groups, created, lock_time")
       .throwOnError();
     if (code !== undefined) query = query.eq("code", code);
     else {
@@ -207,7 +233,14 @@ export async function getRooms(code?: string) {
     }
 
     const { data } = await query;
-    return success(data!.map((d) => ({ ...d, created: new Date(d.created).toISOString() })) as Room[]);
+    return success(
+      data!.map((d) => ({
+        ...d,
+        created: new Date(d.created).toISOString(),
+        lock_time: undefined,
+        locked: !!d.lock_time,
+      })) as Room[]
+    );
   } catch (err: any) {
     return failure(500, err.message);
   }
@@ -330,7 +363,7 @@ export async function upsertRoom(room: Room) {
     /* Get existing room with this code, if any */
     const { data: existing } = await supabase
       .from(Tables.Rooms)
-      .select("owner, starter_code, groups")
+      .select("owner, starter_code, groups, lock_time")
       .eq("code", room.code)
       .maybeSingle()
       .throwOnError();
@@ -339,8 +372,13 @@ export async function upsertRoom(room: Room) {
     if (existing && existing.owner != owner) return failure(401, "Unauthorized");
 
     /* Upsert room to database */
-    const { created, ...rest } = room;
-    const row = { owner, ...rest };
+    const { created, locked, ...rest } = room;
+    const row = {
+      owner,
+      lock_time: room.locked ? existing?.lock_time || new Date().toISOString() : null,
+      ...rest,
+    };
+
     if (existing) await supabase.from(Tables.Rooms).update(row).eq("code", room.code).throwOnError();
     else await supabase.from(Tables.Rooms).insert(row).throwOnError();
 

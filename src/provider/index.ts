@@ -9,6 +9,18 @@ import { debounce, defaults } from "lodash";
 const DefaultResyncMs = 20000;
 const DefaultSaveMs = 2500;
 
+export enum ReadWriteMode {
+  /**
+   * Document is read/writable. Changes will be propogated to peers.
+   */
+  ReadWrite,
+
+  /**
+   * Document is read only. Changes won't be propogated to peers.
+   */
+  ReadOnly
+}
+
 export type SupabaseProviderConfig = {
   /** Name of the Supabase channel to connect to. */
   readonly channel: string;
@@ -56,6 +68,11 @@ export type SupabaseProviderConfig = {
    * @default true
    */
   readonly log: boolean;
+
+  /**
+   * The policy for reading/writing to the document.
+   */
+  rw: ReadWriteMode;
 };
 
 export enum SupabaseProviderEvents {
@@ -201,7 +218,8 @@ export class SupabaseProvider extends EventEmitter {
         resync: true,
         resyncInterval: DefaultResyncMs,
         saveInterval: DefaultSaveMs,
-        log: true
+        log: true,
+        rw: ReadWriteMode.ReadWrite
       }
     );
 
@@ -351,6 +369,7 @@ export class SupabaseProvider extends EventEmitter {
    */
   private sendDocumentUpdate(message: Uint8Array) {
     if (this.alone) return;
+    if (this.config.rw === ReadWriteMode.ReadOnly) return;
     if (this.status === ConnectionStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",
@@ -377,6 +396,7 @@ export class SupabaseProvider extends EventEmitter {
    */
   private sendAwarenessUpdate(message: Uint8Array) {
     if (this.alone) return;
+    if (this.config.rw === ReadWriteMode.ReadOnly) return;
     if (this.status === ConnectionStatus.Connected && this.channel)
       this.channel.send({
         type: "broadcast",

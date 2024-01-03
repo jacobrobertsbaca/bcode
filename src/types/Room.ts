@@ -70,6 +70,7 @@ export const RoomSchema = z.object({
     .max(8, "For performance reasons, you can't have more than 8 groups")
     .refine((arr) => new Set(arr.map((g) => g.no)).size === arr.length, "Can't have duplicate group numbers"),
   created: z.string().datetime(),
+  locked: z.boolean()
 });
 
 export const RoomSchemaNew = RoomSchema.extend({
