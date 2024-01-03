@@ -4,7 +4,9 @@ import * as AwarenessProtocol from "y-protocols/awareness";
 import EventEmitter from "events";
 import debug, { Debugger } from "debug";
 import { ConnectionStatus } from "@/types/Connection";
-import { debounce, defaults } from "lodash";
+import { debounce, defaults, throttle, uniq } from "lodash";
+import { z } from "zod";
+import { ChannelEvents } from "./events";
 
 const DefaultResyncMs = 20000;
 const DefaultSaveMs = 2500;
@@ -18,7 +20,7 @@ export enum ReadWriteMode {
   /**
    * Document is read only. Changes won't be propogated to peers.
    */
-  ReadOnly
+  ReadOnly,
 }
 
 export type SupabaseProviderConfig = {
@@ -64,6 +66,14 @@ export type SupabaseProviderConfig = {
   readonly saveInterval: number;
 
   /**
+   * Realtime update throttle interval.
+   * At most one realtime message will be sent per this time interval in milliseconds.
+   * `0` will disable message throttling;
+   * @default 0
+   */
+  readonly throttleInterval: number;
+
+  /**
    * Whether or not the provider should log status updates to the console.
    * @default true
    */
@@ -92,13 +102,16 @@ export enum SupabaseProviderEvents {
   Saving = "saving",
 }
 
-enum ChannelEvents {
-  Message = "message",
-  Awareness = "awareness",
-}
-
 type PartialExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
 type ProviderConfig = PartialExcept<SupabaseProviderConfig, "channel">;
+
+const ByteArraySchema = z.number().int().min(0).max(255).array().min(1);
+const PayloadSchema = z.object({
+  document: ByteArraySchema.optional(),
+  awareness: ByteArraySchema.optional(),
+});
+
+type Payload = z.infer<typeof PayloadSchema>;
 
 export class SupabaseProvider extends EventEmitter {
   public readonly config: SupabaseProviderConfig;
@@ -108,7 +121,7 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   public get saving() {
-    return this.saveCounter > 0;
+    return this.savesOutstanding > 0;
   }
 
   constructor(private doc: Y.Doc, private supabase: SupabaseClient, config: ProviderConfig) {
@@ -124,19 +137,13 @@ export class SupabaseProvider extends EventEmitter {
     this.resync = setInterval(this.sendResyncUpdate.bind(this), this.config.resyncInterval);
 
     /* Setup debounced save function */
-    const debouncedSave = debounce(
-      () => this.status === ConnectionStatus.Connected && this.saveDocument(),
-      this.config.saveInterval
-    );
+    this.saveDocument = this.saveDocument.bind(this);
+    this.debouncedSave = debounce(this.saveDocument, this.config.saveInterval);
 
-    this.requestSave = () => {
-      if (this.status !== ConnectionStatus.Connected) return;
-      if (!this.config.save || !this.config.saveDocument) return;
-      const wasSaving = this.saving;
-      this.saveCounter++;
-      if (wasSaving !== this.saving) this.emit(SupabaseProviderEvents.Saving, this, this.saving);
-      debouncedSave();
-    };
+    /* Setup throttled update function */
+    this.commitUpdates = this.commitUpdates.bind(this);
+    if (this.config.throttleInterval === 0) this.throttledSend = this.commitUpdates;
+    else this.throttledSend = throttle(this.commitUpdates, this.config.throttleInterval);
 
     /* Register unload handlers */
     this.onUnload = this.onUnload.bind(this);
@@ -159,11 +166,8 @@ export class SupabaseProvider extends EventEmitter {
     /* Connect client */
     this.channel = this.supabase.channel(this.config.channel);
     this.channel
-      .on("broadcast", { event: ChannelEvents.Message }, ({ payload }) => {
-        this.receiveDocumentUpdate(Uint8Array.from(payload));
-      })
-      .on("broadcast", { event: ChannelEvents.Awareness }, ({ payload }) => {
-        this.receiveAwarenessUpdate(Uint8Array.from(payload));
+      .on("broadcast", { event: ChannelEvents.Update }, ({ payload }) => {
+        this.receiveUpdate(payload);
       })
       .on("presence", { event: "sync" }, () => {
         const state = this.channel!.presenceState();
@@ -177,7 +181,10 @@ export class SupabaseProvider extends EventEmitter {
 
         /* If we're not alone and we received a presence update, then somebody new has joined.
          * We should send them the current state of the document in case our local changes haven't been saved */
-        if (!this.alone) this.sendResyncUpdate();
+        if (!this.alone) {
+          this.sendResyncUpdate();
+          this.commitUpdates();
+        }
       })
       .subscribe((status, err) => {
         switch (status) {
@@ -207,8 +214,14 @@ export class SupabaseProvider extends EventEmitter {
   private resync: NodeJS.Timeout | undefined;
   private previous: Uint8Array | null = null;
   private alone: boolean = true;
-  private saveCounter: number = 0; // The number of outstanding document saves
-  private requestSave: () => void;
+
+  private savesOutstanding: number = 0; // The number of outstanding (incomplete) document saves
+  private savesUnclaimed: number = 0; // The number of save requests waiting to be serviced
+  private debouncedSave: () => void;
+
+  private documentUpdates: Uint8Array[] = [];
+  private awarenessUpdates: number[] = [];
+  private throttledSend: () => void;
 
   private validateConfig(config: ProviderConfig): SupabaseProviderConfig {
     const result = defaults(
@@ -218,8 +231,9 @@ export class SupabaseProvider extends EventEmitter {
         resync: true,
         resyncInterval: DefaultResyncMs,
         saveInterval: DefaultSaveMs,
+        throttleInterval: 0,
         log: true,
-        rw: ReadWriteMode.ReadWrite
+        rw: ReadWriteMode.ReadWrite,
       }
     );
 
@@ -232,13 +246,14 @@ export class SupabaseProvider extends EventEmitter {
   private async destroyInternal(status: ConnectionStatus, error?: any) {
     /* Don't run destruction logic if already destroyed */
     if (this.status === ConnectionStatus.Disconnected || this.status === ConnectionStatus.DisconnectedError) return;
+    this.onUnload();
+    this.commitUpdates();
     this._status = ConnectionStatus.Disconnected;
 
     this.logger(`Destroying ${SupabaseProvider.name} for document ${this.doc.guid}`);
     clearInterval(this.resync);
 
     /* Remove awareness and unregister unload handlers */
-    this.onUnload();
     if (typeof window !== "undefined") {
       window.removeEventListener("beforeunload", this.onUnload);
     } else if (typeof process !== "undefined") {
@@ -246,7 +261,7 @@ export class SupabaseProvider extends EventEmitter {
     }
 
     /* Save any outstanding changes to the document */
-    await this.saveDocument();
+    await this.saveDocument(false);
 
     /* Unbind from document/awareness callbacks */
     this.doc.off("update", this.onDocumentUpdate);
@@ -326,18 +341,30 @@ export class SupabaseProvider extends EventEmitter {
     return true;
   }
 
+  private requestSave() {
+    if (this.status !== ConnectionStatus.Connected) return;
+    if (!this.config.save || !this.config.saveDocument) return;
+    const wasSaving = this.saving;
+    this.savesOutstanding++;
+    this.savesUnclaimed++;
+    if (wasSaving !== this.saving) this.emit(SupabaseProviderEvents.Saving, this, this.saving);
+    this.debouncedSave();
+  }
+
   /**
    * Saves the document remotely to the database.
    * This should be debounced to save on database egress.
    */
-  private async saveDocument() {
-    if (this.saveCounter === 0) return; // Nothing to save
-    const outstandingSaves = this.saveCounter;
+  private async saveDocument(requireConnection: boolean = true) {
+    if (requireConnection && this.status !== ConnectionStatus.Connected) return;
+    if (this.savesUnclaimed === 0) return; // Nothing to save
+    const unclaimedSaves = this.savesUnclaimed;
+    this.savesUnclaimed = 0;
 
     /* Called after a successful save. Fires the saving event if needed */
     const onSaved = () => {
       const wasSaving = this.saving;
-      this.saveCounter -= outstandingSaves;
+      this.savesOutstanding -= unclaimedSaves;
       if (this.status === ConnectionStatus.Connected && wasSaving !== this.saving)
         this.emit(SupabaseProviderEvents.Saving, this, this.saving);
     };
@@ -364,83 +391,102 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   /**
-   * Sends a document update message to peers.
-   * @param message A YJS document update
-   */
-  private sendDocumentUpdate(message: Uint8Array) {
-    if (this.alone) return;
-    if (this.config.rw === ReadWriteMode.ReadOnly) return;
-    if (this.status === ConnectionStatus.Connected && this.channel)
-      this.channel.send({
-        type: "broadcast",
-        event: ChannelEvents.Message,
-        payload: Array.from(message),
-      });
-  }
-
-  /**
-   * Receives a document update message from peers and updates the local document state.
-   * @param message A YJS document update
-   */
-  private receiveDocumentUpdate(message: Uint8Array) {
-    try {
-      Y.applyUpdate(this.doc, message, this);
-    } catch (err: any) {
-      this.logger("Error applying remote document update", err);
-    }
-  }
-
-  /**
-   * Sends an awareness update message to peers.
-   * @param message A YJS awareness update
-   */
-  private sendAwarenessUpdate(message: Uint8Array) {
-    if (this.alone) return;
-    if (this.config.rw === ReadWriteMode.ReadOnly) return;
-    if (this.status === ConnectionStatus.Connected && this.channel)
-      this.channel.send({
-        type: "broadcast",
-        event: ChannelEvents.Awareness,
-        payload: Array.from(message),
-      });
-  }
-
-  /**
-   * Receives an awareness update message from peers and updates the local awareness state.
-   * @param message A YJS awareness update.
-   */
-  private receiveAwarenessUpdate(message: Uint8Array) {
-    try {
-      AwarenessProtocol.applyAwarenessUpdate(this.awareness, message, this);
-    } catch (error: any) {
-      this.logger("Error applying remote awareness update", error);
-    }
-  }
-
-  /**
    * Sends an update to all peers with the current state of the document.
    * By calling this periodically, we can avoid peers' local document state from diverging.
    */
   private sendResyncUpdate() {
     if (!this.config.resync) return;
     const update = Y.encodeStateAsUpdate(this.doc);
-    this.sendDocumentUpdate(update);
+    this.sendUpdate({ document: update });
+  }
+
+  /**
+   * Enqueues updates to send to peers. Updates are batched together and sent as a single message
+   * to clients depdening on the `throttleInterval`.
+   * @param update An object containing updates to enqueue.
+   * `document` contains a YJS update blob, `awareness` contains a list of changed clients.
+   */
+  private sendUpdate(update: { document?: Uint8Array; awareness?: number[] }) {
+    if (this.config.rw === ReadWriteMode.ReadOnly) return;
+    if (!update.document && (!update.awareness || update.awareness.length === 0)) return;
+    if (update.document) this.documentUpdates.push(update.document);
+    if (update.awareness) this.awarenessUpdates.push(...update.awareness);
+    this.throttledSend();
+  }
+
+  /**
+   * Sends all enqueued document/awareness updates as one combined Realtime broadcast.
+   * If there is nothing to send, does nothing. Enqueue
+   */
+  private commitUpdates() {
+    if (this.alone) return;
+    if (this.status !== ConnectionStatus.Connected) return;
+    if (!this.channel) return;
+    if (this.documentUpdates.length === 0 && this.awarenessUpdates.length === 0) return;
+
+    const payload: Payload = {};
+
+    if (this.documentUpdates.length > 0) {
+      payload.document = Array.from(Y.mergeUpdates(this.documentUpdates));
+      this.documentUpdates.length = 0;
+    }
+
+    if (this.awarenessUpdates.length > 0) {
+      const clients = uniq(this.awarenessUpdates);
+      this.awarenessUpdates.length = 0;
+      payload.awareness = Array.from(AwarenessProtocol.encodeAwarenessUpdate(this.awareness, clients));
+    }
+
+    this.channel.send({
+      type: "broadcast",
+      event: ChannelEvents.Update,
+      payload,
+    });
+  }
+
+  /**
+   * Receives an update from peers and applies it to the document.
+   * Invalid updates are ignored.
+   * @param update An update from peers
+   */
+  private receiveUpdate(update: Payload) {
+    const validation = PayloadSchema.safeParse(update);
+    if (!validation.success) return;
+    update = validation.data;
+
+    try {
+      if (update.awareness)
+        AwarenessProtocol.applyAwarenessUpdate(this.awareness, Uint8Array.from(update.awareness), this);
+      if (update.document) Y.applyUpdate(this.doc, Uint8Array.from(update.document), this);
+    } catch (err: any) {
+      this.logger("Error applying remote document update", err);
+    }
   }
 
   private onDocumentUpdate(update: Uint8Array, origin: any) {
     if (origin === this) return;
-    this.sendDocumentUpdate(update);
+    this.sendUpdate({ document: update });
     this.requestSave();
   }
 
-  private onAwarenessUpdate({ added, updated, removed }: any, origin: any) {
+  private onAwarenessUpdate(
+    {
+      added,
+      updated,
+      removed,
+    }: {
+      added: number[];
+      updated: number[];
+      removed: number[];
+    },
+    origin: any
+  ) {
     if (origin === this) return;
-    const changedClients = added.concat(updated).concat(removed);
-    const awarenessUpdate = AwarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients);
-    this.sendAwarenessUpdate(awarenessUpdate);
+    const clients = added.concat(updated).concat(removed);
+    this.sendUpdate({ awareness: clients });
   }
 
   private onUnload() {
-    AwarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], this);
+    AwarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], null);
   }
 }

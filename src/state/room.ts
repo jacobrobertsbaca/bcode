@@ -8,7 +8,7 @@ import { type LiveUser, useUserState } from "./user";
 import { enqueueSnackbar } from "notistack";
 import { useEffect } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { RoomChannelEvents } from "./events";
+import { ChannelEvents } from "../provider/events";
 import { useRouter } from "@/components/navigation/AppProgressBar";
 import { prod } from "@/app/util";
 
@@ -80,7 +80,7 @@ export const useRoomState = create<RoomState>((set, get) => ({
 
         set({ users });
       })
-      .on("broadcast", { event: RoomChannelEvents.Update }, () => {
+      .on("broadcast", { event: ChannelEvents.Update }, () => {
         logger("Notified of update to current room.");
         router.refresh();
       })

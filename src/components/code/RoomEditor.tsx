@@ -169,6 +169,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
         channel,
         log: !prod(),
         rw: readOnly ? ReadWriteMode.ReadOnly : ReadWriteMode.ReadWrite,
+        throttleInterval: 200,
 
         async loadDocument() {
           const state = await loadDocument(channel);

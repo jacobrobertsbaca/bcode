@@ -12,7 +12,7 @@
  */
 
 import createServer from "@/provider/server";
-import { RoomChannelEvents } from "@/state/events";
+import { ChannelEvents } from "@/provider/events";
 import { Room, RoomGroup, RoomSchema, channelMask, channelString, parseChannelString } from "@/types/Room";
 import { difference } from "lodash";
 import { revalidatePath } from "next/cache";
@@ -124,7 +124,7 @@ async function notifyParticipants(code: string) {
   /* Send update message */
   const result = await channel.send({
     type: "broadcast",
-    event: RoomChannelEvents.Update,
+    event: ChannelEvents.Update,
   });
 
   if (result !== "ok") throw new Error(`Failed to update participants: ${result}`);
