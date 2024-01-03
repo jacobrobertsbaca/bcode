@@ -330,7 +330,7 @@ export async function upsertRoom(room: Room) {
     /* Get existing room with this code, if any */
     const { data: existing } = await supabase
       .from(Tables.Rooms)
-      .select("owner, starter_code, created, groups")
+      .select("owner, starter_code, groups")
       .eq("code", room.code)
       .maybeSingle()
       .throwOnError();
@@ -339,8 +339,8 @@ export async function upsertRoom(room: Room) {
     if (existing && existing.owner != owner) return failure(401, "Unauthorized");
 
     /* Upsert room to database */
-    const row = { owner, ...room };
-    row.created = existing ? existing.created : new Date().toISOString();
+    const { created, ...rest } = room;
+    const row = { owner, ...rest };
     if (existing) await supabase.from(Tables.Rooms).update(row).eq("code", room.code).throwOnError();
     else await supabase.from(Tables.Rooms).insert(row).throwOnError();
 
