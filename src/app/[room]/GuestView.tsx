@@ -203,6 +203,7 @@ function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
         display="inline"
         variant="inherit"
         fontWeight={view === GuestViewStatus.Name ? 500 : undefined}
+        iconSize="0.6em"
       />
     </Typography>
   );

@@ -4,6 +4,7 @@ import { CardHeader, Stack, Typography, alpha } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
+import * as AwarenessProtocol from "y-protocols/awareness";
 import { ReadWriteMode, SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 import { yCollab } from "y-codemirror.next";
 import EditorFrame, { EditorFrameProps } from "./EditorFrame";
@@ -87,6 +88,7 @@ function useSaved() {
 }
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
+  if (!provider.awareness.getLocalState()) provider.awareness.setLocalState({});
   provider.awareness.setLocalStateField("user", {
     name: user.name,
     color: user.color,
@@ -202,6 +204,9 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   /* Update provider read-only mode when read-only changes */
   useEffect(() => {
     if (!provider.current) return;
+    const awareness = provider.current.awareness;
+    if (readOnly) AwarenessProtocol.removeAwarenessStates(awareness, [awareness.clientID], null);
+    else updateProviderUser(provider.current, user);
     provider.current.config.rw = readOnly ? ReadWriteMode.ReadOnly : ReadWriteMode.ReadWrite;
   }, [readOnly]);
 

@@ -402,7 +402,7 @@ export class SupabaseProvider extends EventEmitter {
    *  - Setting `resync` to true will send an update that synchronizes peers' document
    *    state, overwriting `document` and `awareness` if defined.
    */
-  private sendUpdate(update: { document?: Uint8Array; awareness?: number[], resync?: boolean }) {
+  private sendUpdate(update: { document?: Uint8Array; awareness?: number[]; resync?: boolean }) {
     if (!update.resync && this.config.rw === ReadWriteMode.ReadOnly) return;
     if (update.resync && !this.config.resync) return;
     if (update.resync) update = { document: Y.encodeStateAsUpdate(this.doc) };
@@ -485,6 +485,6 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   private onUnload() {
-    AwarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], null);
+    AwarenessProtocol.removeAwarenessStates(this.awareness, [this.doc.clientID], "unload");
   }
 }
