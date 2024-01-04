@@ -31,7 +31,8 @@ create table rooms (
   language text not null,
   starter_code text not null,
   groups json not null,
-  created timestamp not null
+  created timestamptz not null default now(),
+  lock_time timestamptz
 );
 ```
 

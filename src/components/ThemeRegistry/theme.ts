@@ -1,4 +1,4 @@
-import { PaletteOptions, createTheme as createMuiTheme } from "@mui/material/styles";
+import { alpha, createTheme as createMuiTheme } from "@mui/material/styles";
 import { jakarta } from "./fonts";
 
 declare module "@mui/material/styles" {
@@ -21,26 +21,32 @@ export default function createTheme(mode: "light" | "dark") {
       mode,
       ...(mode === "light"
         ? {
-            primary: { main: "rgba(0, 0, 0, 0.6)" },
+            primary: { main: "rgba(70, 70, 70, 1.0)" },
             text: {
               primary: "rgba(0, 0, 0, 0.6)",
-              secondary: "rgba(0, 0, 0, 0.26)",
+              secondary: "rgba(0, 0, 0, 0.46)",
             },
             editor: { main: "#fcfcfc" },
             background: { contrast: "#000" },
           }
         : {
-            primary: { main: "rgba(255, 255, 255, 0.8)" },
+            primary: { main: "rgba(225, 225, 225, 1.0)" },
             text: {
               primary: "rgba(255, 255, 255, 0.8)",
               secondary: "rgba(255, 255, 255, 0.46)",
             },
             editor: { main: "#141414" },
-            background: { contrast: "#fff" },
+            background: {
+              contrast: "#fff",
+              paper: "rgb(22, 22, 22)",
+            },
           }),
     },
     typography: {
       fontFamily: jakarta.style.fontFamily,
+    },
+    shape: {
+      borderRadius: 9,
     },
   });
 
@@ -51,15 +57,6 @@ export default function createTheme(mode: "light" | "dark") {
         root: {
           backgroundImage: "unset",
         },
-      },
-    },
-    MuiAlert: {
-      styleOverrides: {
-        root: ({ ownerState }) => ({
-          ...(ownerState.severity === "info" && {
-            backgroundColor: "#60a5fa",
-          }),
-        }),
       },
     },
     MuiButton: {
@@ -73,7 +70,6 @@ export default function createTheme(mode: "light" | "dark") {
       styleOverrides: {
         root: {
           boxShadow: "0 2px 6px rgba(0,0,0,.05)",
-          borderRadius: "10px",
           ["&.Mui-focused"]: {
             ["& .MuiOutlinedInput-notchedOutline"]: {
               borderWidth: 1,
@@ -92,13 +88,6 @@ export default function createTheme(mode: "light" | "dark") {
         },
       },
     },
-    MuiButtonBase: {
-      styleOverrides: {
-        root: {
-          borderRadius: "10px !important",
-        },
-      },
-    },
     MuiMenuItem: {
       styleOverrides: {
         root: {
@@ -106,25 +95,20 @@ export default function createTheme(mode: "light" | "dark") {
         },
       },
     },
-    MuiSlider: {
-      styleOverrides: {
-        thumb: {
-          color: theme.palette.background.contrast,
-        },
-      },
-    },
     MuiAvatar: {
       styleOverrides: {
         root: {
           fontSize: "1rem",
-          color: "white"
+          color: "white",
         },
       },
     },
-    MuiDialog: {
+    MuiSwitch: {
       styleOverrides: {
-        paper: {
-          borderRadius: "10px",
+        root: {
+          "& :not(.Mui-checked) > .MuiSwitch-thumb": {
+            backgroundColor: theme.palette.augmentColor({ color: { main: theme.palette.background.paper } }).light,
+          },
         },
       },
     },

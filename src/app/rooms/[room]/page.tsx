@@ -6,6 +6,7 @@ import Link from "next/link";
 import SquaresIcon from "@heroicons/react/24/outline/Squares2X2Icon";
 import EditorOnline from "@/components/code/EditorOnline";
 import { getPageRoom } from "@/app/actions";
+import { RoomTitle } from "@/components/RoomTitle";
 
 export async function generateMetadata({ params }: { params: { room: string } }) {
   const room = await getPageRoom(params.room);
@@ -19,9 +20,9 @@ export default async function HostRoomPage({ params }: { params: { room: string 
   return (
     <Stack spacing={2}>
       <Stack spacing={1}>
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems="start" spacing={2}>
+        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems="start" spacing={1}>
           <Stack spacing={1}>
-            <Typography variant="h4">{room.name}</Typography>
+            <RoomTitle room={room} host={true} variant="h4" />
             <Typography fontFamily={courier.style.fontFamily} variant="h5">
               {room.code}
             </Typography>

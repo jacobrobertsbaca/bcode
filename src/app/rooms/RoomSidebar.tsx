@@ -140,6 +140,7 @@ export function AddRoomButton() {
           starter_code: "",
           groups: groupsForCount(1),
           created: new Date().toISOString(),
+          locked: false
         }}
       />
       <IconButton onClick={() => setOpen(true)}>

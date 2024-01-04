@@ -47,10 +47,16 @@ export type EditorConfig = {
    * number of characters.
    */
   notifyMax?: boolean;
+
+  /**
+   * Whether or not modifying the document is allowed. User will still be allowed to select and copy.
+   */
+  readOnly?: boolean;
 };
 
 const EditorTheme = new Compartment();
 const EditorLanguage = new Compartment();
+const EditorReadOnly = new Compartment();
 
 /**
  * Checks if a transaction is remote.
@@ -139,6 +145,7 @@ export function useEditor(config: EditorConfig) {
           keymap.of([indentWithTab]),
           EditorTheme.of(editorTheme),
           EditorLanguage.of([]),
+          EditorReadOnly.of(EditorState.readOnly.of(!!config.readOnly)),
           maxLength(config.max, config.notifyMax ?? false),
         ].concat(extensions ?? []),
         ...rest,
@@ -151,6 +158,13 @@ export function useEditor(config: EditorConfig) {
       setEditorView(undefined);
     };
   }, [config.onCreate]);
+
+  /* Update the editor when read-only mode changes */
+  useEffect(() => {
+    editorView?.dispatch({
+      effects: EditorReadOnly.reconfigure(EditorState.readOnly.of(!!config.readOnly)),
+    });
+  }, [config.readOnly]);
 
   /* Update the editor theme when the MUI theme changes */
   useEffect(() => {

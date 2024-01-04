@@ -31,6 +31,7 @@ import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ConnectionStatus } from "@/types/Connection";
 import { random } from "lodash";
+import { RoomTitle } from "@/components/RoomTitle";
 
 /**
  * Available colors for guests to use.
@@ -196,9 +197,14 @@ function GuestViewTitle({ room, view }: { room: Room; view: GuestViewStatus }) {
   return (
     <Typography variant="h5">
       {view === GuestViewStatus.Name && "Join "}
-      <Typography display="inline" variant="inherit" fontWeight={view === GuestViewStatus.Name ? 500 : undefined}>
-        {room.name}
-      </Typography>
+      <RoomTitle
+        room={room}
+        host={false}
+        display="inline"
+        variant="inherit"
+        fontWeight={view === GuestViewStatus.Name ? 500 : undefined}
+        iconSize="0.6em"
+      />
     </Typography>
   );
 }

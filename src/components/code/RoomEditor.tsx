@@ -1,10 +1,11 @@
 "use client";
 
-import { CardHeader, Stack, Typography, alpha, useTheme } from "@mui/material";
+import { CardHeader, Stack, Typography, alpha } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
-import { SupabaseProvider, SupabaseProviderEvents } from "@/provider";
+import * as AwarenessProtocol from "y-protocols/awareness";
+import { ReadWriteMode, SupabaseProvider, SupabaseProviderEvents } from "@/provider";
 import { yCollab } from "y-codemirror.next";
 import EditorFrame, { EditorFrameProps } from "./EditorFrame";
 import { ConnectionStatus } from "@/types/Connection";
@@ -87,6 +88,7 @@ function useSaved() {
 }
 
 function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
+  if (!provider.awareness.getLocalState()) provider.awareness.setLocalState({});
   provider.awareness.setLocalStateField("user", {
     name: user.name,
     color: user.color,
@@ -101,7 +103,6 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
  */
 
 function EditorTitle({ group, saving }: { group?: RoomGroup; saving?: boolean }) {
-  const theme = useTheme();
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
       <Typography variant="inherit">{group?.name}</Typography>
@@ -138,11 +139,13 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
 
   const channel = channelString(room, group);
   const editorId = `${kEditorViewId}-${channel}`;
+  const readOnly = !user.isHost && room.locked;
 
   useEditor({
     language: room.language,
     max: kEditorMaxChars,
     notifyMax: true,
+    readOnly,
 
     onCreate: useCallback(() => {
       // If we are waiting to reload the editor, do nothing.
@@ -158,6 +161,8 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
       provider.current = new SupabaseProvider(ydoc, supabase, {
         channel,
         log: !prod(),
+        rw: readOnly ? ReadWriteMode.ReadOnly : ReadWriteMode.ReadWrite,
+        throttleInterval: 200,
 
         async loadDocument() {
           const state = await loadDocument(channel);
@@ -195,6 +200,15 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
       setSaving(false, false);
     },
   });
+
+  /* Update provider read-only mode when read-only changes */
+  useEffect(() => {
+    if (!provider.current) return;
+    const awareness = provider.current.awareness;
+    if (readOnly) AwarenessProtocol.removeAwarenessStates(awareness, [awareness.clientID], null);
+    else updateProviderUser(provider.current, user);
+    provider.current.config.rw = readOnly ? ReadWriteMode.ReadOnly : ReadWriteMode.ReadWrite;
+  }, [readOnly]);
 
   /* Update the awareness user other people see (cursor color, name, etc.) if it changes */
   useEffect(() => {
