@@ -60,7 +60,9 @@ export type SupabaseProviderConfig = {
   readonly resyncInterval: number;
 
   /**
-   * How often to save the document in milliseconds. Must be positive.
+   * After modifying the document, how much time must pass in milliseconds 
+   * without making any changes before document updates are saved. In other words, document
+   * saves will be debounced by this interval. Must be positive.
    * @default 2500
    */
   readonly saveInterval: number;
@@ -354,6 +356,7 @@ export class SupabaseProvider extends EventEmitter {
   /**
    * Saves the document remotely to the database.
    * This should be debounced to save on database egress.
+   * @param [requireConnection=true] Whether or not the provider must be connected to save.
    */
   private async saveDocument(requireConnection: boolean = true) {
     if (requireConnection && this.status !== ConnectionStatus.Connected) return;
@@ -416,7 +419,7 @@ export class SupabaseProvider extends EventEmitter {
 
   /**
    * Sends all enqueued document/awareness updates as one combined Realtime broadcast.
-   * If there is nothing to send, does nothing. Enqueue
+   * If there is nothing to send, does nothing. Enqueue updates with {@link sendUpdate}.
    */
   private commitUpdates() {
     if (this.alone) return;

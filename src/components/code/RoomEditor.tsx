@@ -1,6 +1,6 @@
 "use client";
 
-import { CardHeader, Stack, SvgIcon, Tooltip, Typography, alpha } from "@mui/material";
+import { CardHeader, Stack, Typography, alpha } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import createClient from "@/provider/client";
 import * as Y from "yjs";
@@ -17,7 +17,6 @@ import { EditorStyles, useEditor } from "./EditorBase";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import { useRoomState } from "@/state/room";
 import { prod } from "@/app/util";
-import LockClosed from "@heroicons/react/20/solid/LockClosedIcon";
 
 /*
  * ============================================================================
@@ -101,18 +100,10 @@ function updateProviderUser(provider: SupabaseProvider, user: LiveUser) {
  * ============================================================================
  */
 
-function EditorTitle({ room, group, saving }: { room: Room; group?: RoomGroup; saving?: boolean }) {
-  const isHost = useUserState((state) => state.user.isHost);
+function EditorTitle({ group, saving }: { group?: RoomGroup; saving?: boolean }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
       <Typography variant="inherit">{group?.name}</Typography>
-      {room.locked && (
-        <Tooltip arrow title={`The room has been locked${isHost ? ". Only you can edit it" : ""}`}>
-          <SvgIcon sx={{ fontSize: "0.66em" }}>
-            <LockClosed />
-          </SvgIcon>
-        </Tooltip>
-      )}
       <Typography
         variant="caption"
         color="text.secondary"
@@ -266,7 +257,7 @@ export default function RoomEditor({ room, group, action }: RoomEditorProps) {
   return (
     <EditorFrame sx={{ minHeight: kEditorHeightPx }}>
       <CardHeader
-        title={<EditorTitle room={room} group={room?.groups.find((g) => g.no === group)} saving={saving} />}
+        title={<EditorTitle group={room?.groups.find((g) => g.no === group)} saving={saving} />}
         titleTypographyProps={{ variant: "h6", fontWeight: 400 }}
         action={
           <Stack direction="row" alignItems="center" spacing={1}>

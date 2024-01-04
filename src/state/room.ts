@@ -6,7 +6,7 @@ import debug from "debug";
 import { ConnectionStatus } from "../types/Connection";
 import { type LiveUser, useUserState } from "./user";
 import { enqueueSnackbar } from "notistack";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { ChannelEvents } from "../provider/events";
 import { useRouter } from "@/components/navigation/AppProgressBar";
@@ -135,8 +135,8 @@ export const useRoomState = create<RoomState>((set, get) => ({
 
 export function useRoom(room: Room) {
   const router = useRouter();
-  const userState = useUserState();
   const roomState = useRoomState();
+  const userState = useUserState();
 
   /* Connect to room on mount, disconnect on unmount */
   useEffect(() => {
@@ -153,9 +153,17 @@ export function useRoom(room: Room) {
   useEffect(() => {
     if (userState.user.group > 0 && !room.groups.some((g) => g.no === userState.user.group)) {
       userState.updateUser({ group: 0 });
-      enqueueSnackbar("The host closed your group.");
+      enqueueSnackbar("The host closed your group");
     }
   }, [room, userState]);
+
+  /* Notify guests when host locks the room */
+  const wasLocked = useRef(room.locked);
+  useEffect(() => {
+    if (room.locked === wasLocked.current) return;
+    wasLocked.current = room.locked;
+    if (!userState.user.isHost && room.locked) enqueueSnackbar("The host locked the room");
+  }, [room.locked]);
 
   /* Attempt to reconnect on document becoming visible */
   useEffect(() => {
