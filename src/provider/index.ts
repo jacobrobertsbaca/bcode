@@ -60,7 +60,7 @@ export type SupabaseProviderConfig = {
   readonly resyncInterval: number;
 
   /**
-   * After modifying the document, how much time must pass in milliseconds 
+   * After modifying the document, how much time must pass in milliseconds
    * without making any changes before document updates are saved. In other words, document
    * saves will be debounced by this interval. Must be positive.
    * @default 2500
@@ -136,7 +136,7 @@ export class SupabaseProvider extends EventEmitter {
     this.logger(`Creating ${SupabaseProvider.name} for document ${this.doc.guid}`);
 
     /* Set up resyncInterval */
-    this.resync = setInterval(this.sendResyncUpdate.bind(this), this.config.resyncInterval);
+    this.resync = setInterval(() => this.sendUpdate({ resync: true }), this.config.resyncInterval);
 
     /* Setup debounced save function */
     this.saveDocument = this.saveDocument.bind(this);
@@ -184,7 +184,7 @@ export class SupabaseProvider extends EventEmitter {
         /* If we're not alone and we received a presence update, then somebody new has joined.
          * We should send them the current state of the document in case our local changes haven't been saved */
         if (!this.alone) {
-          this.sendResyncUpdate();
+          this.sendUpdate({ resync: true });
           this.commitUpdates();
         }
       })
@@ -394,23 +394,18 @@ export class SupabaseProvider extends EventEmitter {
   }
 
   /**
-   * Sends an update to all peers with the current state of the document.
-   * By calling this periodically, we can avoid peers' local document state from diverging.
-   */
-  private sendResyncUpdate() {
-    if (!this.config.resync) return;
-    const update = Y.encodeStateAsUpdate(this.doc);
-    this.sendUpdate({ document: update });
-  }
-
-  /**
    * Enqueues updates to send to peers. Updates are batched together and sent as a single message
    * to clients depdening on the `throttleInterval`.
    * @param update An object containing updates to enqueue.
-   * `document` contains a YJS update blob, `awareness` contains a list of changed clients.
+   *  - `document` contains a YJS update blob
+   *  - `awareness` contains a list of changed clients.
+   *  - Setting `resync` to true will send an update that synchronizes peers' document
+   *    state, overwriting `document` and `awareness` if defined.
    */
-  private sendUpdate(update: { document?: Uint8Array; awareness?: number[] }) {
-    if (this.config.rw === ReadWriteMode.ReadOnly) return;
+  private sendUpdate(update: { document?: Uint8Array; awareness?: number[], resync?: boolean }) {
+    if (!update.resync && this.config.rw === ReadWriteMode.ReadOnly) return;
+    if (update.resync && !this.config.resync) return;
+    if (update.resync) update = { document: Y.encodeStateAsUpdate(this.doc) };
     if (!update.document && (!update.awareness || update.awareness.length === 0)) return;
     if (update.document) this.documentUpdates.push(update.document);
     if (update.awareness) this.awarenessUpdates.push(...update.awareness);
@@ -458,9 +453,9 @@ export class SupabaseProvider extends EventEmitter {
     update = validation.data;
 
     try {
+      if (update.document) Y.applyUpdate(this.doc, Uint8Array.from(update.document), this);
       if (update.awareness)
         AwarenessProtocol.applyAwarenessUpdate(this.awareness, Uint8Array.from(update.awareness), this);
-      if (update.document) Y.applyUpdate(this.doc, Uint8Array.from(update.document), this);
     } catch (err: any) {
       this.logger("Error applying remote document update", err);
     }
