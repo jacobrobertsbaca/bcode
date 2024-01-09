@@ -406,10 +406,8 @@ export class SupabaseProvider extends EventEmitter {
     if (!update.resync && this.config.rw === ReadWriteMode.ReadOnly) return;
     if (update.resync && !this.config.resync) return;
     if (update.resync) {
-      update = {
-        document: Y.encodeStateAsUpdate(this.doc),
-        awareness: [this.awareness.clientID],
-      };
+      update = { document: Y.encodeStateAsUpdate(this.doc) };
+      if (this.config.rw !== ReadWriteMode.ReadOnly) update.awareness = [this.awareness.clientID];
     }
 
     if (!update.document && (!update.awareness || update.awareness.length === 0)) return;
