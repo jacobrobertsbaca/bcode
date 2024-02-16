@@ -29,7 +29,7 @@ import { prod } from "@/app/util";
  * Maximum allowed characters to be typed in the editor.
  * This prevents excessively large documents.
  */
-const kEditorMaxChars = 2000;
+const kEditorMaxChars = 5000;
 
 /**
  * Prefix for editor DOM ids.
