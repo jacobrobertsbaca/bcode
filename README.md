@@ -2,8 +2,6 @@
 
 # `bcode`
 
-![Vercel](https://vercelbadge.vercel.app/api/jacobrobertsbaca/bcode-dev)
-
 `bcode` is a tool that enables Stanford section leaders to create collaborative small group problems during section. Hosts create **rooms** with one or more **groups** that students can join to collaboratively write code during section. Think of it like breakout rooms for code.
 
 To start using `bcode` for your section, [sign in through GitHub](https://106b.vercel.app) and create a room! Once a room is created, you'll be able to share the link and QR code with your sectionees.
