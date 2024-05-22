@@ -12,3 +12,4 @@ To start using `bcode` for your section, [sign in through GitHub](https://106a.v
 - [x] Add support for Python syntax highlighting (for CS106A) 🐍
 - [x] Add support for starter code (avoid multiple copy/paste) 📜
 - [x] Add support for locking rooms 🔒
+- [ ] Add support for runnable code ⏯️
